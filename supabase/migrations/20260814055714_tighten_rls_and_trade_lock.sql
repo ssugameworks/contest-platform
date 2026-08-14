@@ -28,6 +28,8 @@ begin
   if p_type not in ('buy', 'sell') then
     raise exception 'invalid trade type';
   end if;
+  -- keep in sync with MIN_TRADE_AMOUNT in
+  -- src/entities/investment/model/pure.ts (SQL can't import a JS constant)
   if p_amount < 1000 then
     raise exception 'amount below minimum';
   end if;

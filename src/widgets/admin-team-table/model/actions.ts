@@ -1,10 +1,10 @@
 "use server";
 
-import { formatBoothLocation, getBoothByTeamId } from "@/entities/booth";
+import { formatBoothLocation, listBooths } from "@/entities/booth";
 import {
-  getInvestmentRank,
-  getInvestorCount,
-  getTeamInvestmentTotal,
+  getInvestorCounts,
+  getTeamInvestmentTotals,
+  rankTeams,
 } from "@/entities/investment";
 import { listTeams, type Team } from "@/entities/team";
 
@@ -16,23 +16,31 @@ export interface AdminTeamRow {
   boothLabel: string;
 }
 
+// One query per aggregate (not per team) — teams.length no longer
+// multiplies the number of round trips to Supabase.
 export async function listAdminTeamRows(): Promise<AdminTeamRow[]> {
-  const teams = await listTeams();
-  return Promise.all(
-    teams.map(async (team) => {
-      const [amount, investorCount, { rank }, booth] = await Promise.all([
-        getTeamInvestmentTotal(team.id),
-        getInvestorCount(team.id),
-        getInvestmentRank(team.id),
-        getBoothByTeamId(team.id),
-      ]);
-      return {
-        team,
-        amount,
-        investorCount,
-        rank,
-        boothLabel: booth ? formatBoothLocation(booth) : "-",
-      };
-    }),
+  const [teams, totals, investorCounts, booths] = await Promise.all([
+    listTeams(),
+    getTeamInvestmentTotals(),
+    getInvestorCounts(),
+    listBooths(),
+  ]);
+  const amountByTeam = Object.fromEntries(
+    totals.map((entry) => [entry.teamId, entry.amount]),
   );
+  const ranks = rankTeams(totals);
+  const boothByTeam = Object.fromEntries(
+    booths.map((booth) => [booth.teamId, booth]),
+  );
+
+  return teams.map((team) => {
+    const booth = boothByTeam[team.id];
+    return {
+      team,
+      amount: amountByTeam[team.id] ?? 0,
+      investorCount: investorCounts[team.id] ?? 0,
+      rank: ranks[team.id] ?? 0,
+      boothLabel: booth ? formatBoothLocation(booth) : "-",
+    };
+  });
 }

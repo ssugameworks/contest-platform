@@ -15,8 +15,11 @@ import {
 import { listParticipantsAction } from "@/entities/participant/model/actions";
 import type { Team } from "@/entities/team";
 import { listTeamsAction } from "@/entities/team/model/actions";
+import {
+  type ManageTeamInput,
+  manageTeamSchema,
+} from "@/entities/team/model/schema";
 import { createTeamAction, updateTeamAction } from "../model/actions";
-import { type ManageTeamInput, manageTeamSchema } from "../model/schema";
 
 export function ManageTeamForm({
   team,

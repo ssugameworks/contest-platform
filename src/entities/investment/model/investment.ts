@@ -80,6 +80,25 @@ export async function getInvestorCount(teamId: string): Promise<number> {
   return new Set((data ?? []).map((row) => row.investor_id)).size;
 }
 
+// One query for every team's investor count, for callers (admin tables/
+// dashboard) that need all of them instead of looping getInvestorCount.
+export async function getInvestorCounts(): Promise<Record<string, number>> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("transactions")
+    .select("team_id, investor_id");
+  throwIfError(error);
+  const byTeam = new Map<string, Set<string>>();
+  for (const row of data ?? []) {
+    const investors = byTeam.get(row.team_id) ?? new Set<string>();
+    investors.add(row.investor_id);
+    byTeam.set(row.team_id, investors);
+  }
+  return Object.fromEntries(
+    [...byTeam].map(([teamId, investors]) => [teamId, investors.size]),
+  );
+}
+
 export async function getInvestorHolding(
   investorId: string,
   teamId: string,
