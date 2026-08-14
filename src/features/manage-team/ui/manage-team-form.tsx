@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Checkbox } from "seed-design/ui/checkbox";
+import { Snackbar, useSnackbarAdapter } from "seed-design/ui/snackbar";
 import {
   TextField,
   TextFieldInput,
@@ -14,8 +15,11 @@ import {
 import { listParticipantsAction } from "@/entities/participant/model/actions";
 import type { Team } from "@/entities/team";
 import { listTeamsAction } from "@/entities/team/model/actions";
+import {
+  type ManageTeamInput,
+  manageTeamSchema,
+} from "@/entities/team/model/schema";
 import { createTeamAction, updateTeamAction } from "../model/actions";
-import { type ManageTeamInput, manageTeamSchema } from "../model/schema";
 
 export function ManageTeamForm({
   team,
@@ -25,6 +29,7 @@ export function ManageTeamForm({
   onSaved: () => void;
 }) {
   const queryClient = useQueryClient();
+  const adapter = useSnackbarAdapter();
   const [memberIds, setMemberIds] = useState<string[]>(team?.memberIds ?? []);
   const { data: teams = [] } = useQuery({
     queryKey: ["teams"],
@@ -86,10 +91,24 @@ export function ManageTeamForm({
       memberIds,
     };
 
-    if (team) {
-      await updateTeamAction(team.id, input);
-    } else {
-      await createTeamAction(input);
+    try {
+      if (team) {
+        await updateTeamAction(team.id, input);
+      } else {
+        await createTeamAction(input);
+      }
+    } catch (error) {
+      adapter.create({
+        onClose: () => {},
+        render: () => (
+          <Snackbar
+            message={
+              error instanceof Error ? error.message : "저장에 실패했어요"
+            }
+          />
+        ),
+      });
+      return;
     }
     await queryClient.invalidateQueries({ queryKey: ["admin-team-rows"] });
     onSaved();

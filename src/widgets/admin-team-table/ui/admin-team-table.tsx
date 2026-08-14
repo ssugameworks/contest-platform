@@ -10,6 +10,7 @@ import {
   SidePanelFooter,
   SidePanelRoot,
 } from "seed-design/ui/side-panel";
+import { Snackbar, useSnackbarAdapter } from "seed-design/ui/snackbar";
 import { TextField, TextFieldInput } from "seed-design/ui/text-field";
 import type { Team } from "@/entities/team";
 import { ManageTeamForm } from "@/features/manage-team";
@@ -28,12 +29,17 @@ const QUERY_KEY = ["admin-team-rows"];
 
 export function AdminTeamTable() {
   const queryClient = useQueryClient();
+  const adapter = useSnackbarAdapter();
   const [query, setQuery] = useState("");
   const [sortDesc, setSortDesc] = useState(true);
   const [open, setOpen] = useState(false);
   const [editingTeam, setEditingTeam] = useState<Team | undefined>(undefined);
 
-  const { data: rowsData = [] } = useQuery({
+  const {
+    data: rowsData = [],
+    isPending: isRowsPending,
+    isError: isRowsError,
+  } = useQuery({
     queryKey: QUERY_KEY,
     queryFn: listAdminTeamRows,
   });
@@ -43,6 +49,12 @@ export function AdminTeamTable() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY });
       setOpen(false);
+    },
+    onError: (error) => {
+      adapter.create({
+        onClose: () => {},
+        render: () => <Snackbar message={error.message} />,
+      });
     },
   });
 
@@ -99,19 +111,31 @@ export function AdminTeamTable() {
           </TableRow>
         </TableHead>
         <TableBody>
-          {rows.map((row) => (
-            <TableRow
-              key={row.team.id}
-              interactive
-              onClick={() => openEdit(row.team)}
-            >
-              <TableCell>{row.team.name}</TableCell>
-              <TableCell align="right">{`${row.amount.toLocaleString()}원`}</TableCell>
-              <TableCell align="right">{`${row.investorCount}명`}</TableCell>
-              <TableCell align="right">{`${row.rank}위`}</TableCell>
-              <TableCell>{row.boothLabel}</TableCell>
+          {isRowsPending && (
+            <TableRow>
+              <TableCell colSpan={5}>불러오는 중이에요...</TableCell>
             </TableRow>
-          ))}
+          )}
+          {isRowsError && (
+            <TableRow>
+              <TableCell colSpan={5}>목록을 불러오지 못했어요</TableCell>
+            </TableRow>
+          )}
+          {!isRowsPending &&
+            !isRowsError &&
+            rows.map((row) => (
+              <TableRow
+                key={row.team.id}
+                interactive
+                onClick={() => openEdit(row.team)}
+              >
+                <TableCell>{row.team.name}</TableCell>
+                <TableCell align="right">{`${row.amount.toLocaleString()}원`}</TableCell>
+                <TableCell align="right">{`${row.investorCount}명`}</TableCell>
+                <TableCell align="right">{`${row.rank}위`}</TableCell>
+                <TableCell>{row.boothLabel}</TableCell>
+              </TableRow>
+            ))}
         </TableBody>
       </Table>
 

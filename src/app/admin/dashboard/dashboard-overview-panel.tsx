@@ -74,7 +74,7 @@ export function AdminDashboardOverviewPanel({
             <Text textStyle="t5Bold">실시간 투자 현황</Text>
           </HStack>
           <Text textStyle="t3Regular" color="fg.neutralSubtle">
-            {`${new Date(dataUpdatedAt).toLocaleTimeString("ko-KR")} 기준`}
+            {`${new Date(dataUpdatedAt).toLocaleTimeString("ko-KR", { timeZone: "Asia/Seoul" })} 기준`}
           </Text>
         </HStack>
 

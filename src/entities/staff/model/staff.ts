@@ -1,16 +1,18 @@
-import { createClient } from "@/shared/lib/supabase/server";
+import { createAdminClient } from "@/shared/lib/supabase/admin";
 import type { Staff, StaffRole } from "./pure";
 
 export type { Staff, StaffRole } from "./pure";
 export { getCurrentStaff, setCurrentStaff } from "./pure";
-export { findStaffById } from "./staff-client";
 
+// staff has no public SELECT policy (login ids/roles shouldn't be world
+// readable) — reads go through the service-role client instead.
 export async function listJudges(): Promise<Staff[]> {
-  const supabase = await createClient();
-  const { data } = await supabase
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
     .from("staff")
     .select("id, name, role")
     .eq("role", "judge");
+  if (error) throw new Error(error.message);
   return (data ?? []).map((row) => ({
     id: row.id,
     name: row.name,

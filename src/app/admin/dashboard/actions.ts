@@ -1,7 +1,7 @@
 "use server";
 
 import {
-  getInvestorCount,
+  getInvestorCounts,
   getTeamInvestmentTotals,
 } from "@/entities/investment";
 import { listInvestors } from "@/entities/investor";
@@ -9,20 +9,14 @@ import { getScoreLeaderboard } from "@/entities/score";
 import { listTeams } from "@/entities/team";
 
 export async function getDashboardStats() {
-  const [totals, teams, investors, scoreLeaderboard] = await Promise.all([
-    getTeamInvestmentTotals(),
-    listTeams(),
-    listInvestors(),
-    getScoreLeaderboard(),
-  ]);
-
-  const investorCounts = Object.fromEntries(
-    await Promise.all(
-      teams.map(
-        async (team) => [team.id, await getInvestorCount(team.id)] as const,
-      ),
-    ),
-  );
+  const [totals, teams, investors, scoreLeaderboard, investorCounts] =
+    await Promise.all([
+      getTeamInvestmentTotals(),
+      listTeams(),
+      listInvestors(),
+      getScoreLeaderboard(),
+      getInvestorCounts(),
+    ]);
 
   return {
     totals,

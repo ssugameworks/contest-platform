@@ -2,7 +2,7 @@
 
 import { HStack, Text, VStack } from "@seed-design/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ActionButton } from "seed-design/ui/action-button";
 import { TextField, TextFieldInput } from "seed-design/ui/text-field";
 import {
@@ -88,6 +88,8 @@ export function AdminScoreTable() {
     queryKey: ["investment-weight"],
     queryFn: getInvestmentWeightAction,
   });
+  const [weightInput, setWeightInput] = useState(weight);
+  useEffect(() => setWeightInput(weight), [weight]);
 
   const rows = [...entries].sort((a, b) =>
     sortDesc ? b[sortKey] - a[sortKey] : a[sortKey] - b[sortKey],
@@ -113,13 +115,15 @@ export function AdminScoreTable() {
           inputMode="numeric"
           min={0}
           max={100}
-          value={weight}
-          onChange={async (e) => {
-            const value = Math.min(
-              100,
-              Math.max(0, e.target.valueAsNumber || 0),
-            );
-            await setInvestmentWeightAction(value);
+          value={weightInput}
+          onChange={(e) =>
+            setWeightInput(
+              Math.min(100, Math.max(0, e.target.valueAsNumber || 0)),
+            )
+          }
+          onBlur={async () => {
+            if (weightInput === weight) return;
+            await setInvestmentWeightAction(weightInput);
             queryClient.invalidateQueries({ queryKey: ["investment-weight"] });
             queryClient.invalidateQueries({ queryKey: ["score-leaderboard"] });
           }}

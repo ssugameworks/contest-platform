@@ -1,5 +1,6 @@
 import { getTeamInvestmentTotals } from "@/entities/investment";
 import { listTeams } from "@/entities/team";
+import { throwIfError } from "@/shared/lib/supabase/query";
 import { createClient } from "@/shared/lib/supabase/server";
 import {
   getEvaluationTotal,
@@ -38,23 +39,25 @@ export async function getEvaluation(
   teamId: string,
 ): Promise<JudgeEvaluation | undefined> {
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("judge_evaluations")
     .select("judge_id, team_id, criteria_scores, memo, submitted")
     .eq("judge_id", judgeId)
     .eq("team_id", teamId)
     .maybeSingle();
+  throwIfError(error);
   return data ? mapEvaluation(data) : undefined;
 }
 
 // 잠정 합산 방식: 제출 완료된 심사위원 평가들의 단순 평균 (추후 바뀔 수 있음)
 export async function getJudgeScore(teamId: string): Promise<number> {
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("judge_evaluations")
     .select("judge_id, team_id, criteria_scores, memo, submitted")
     .eq("team_id", teamId)
     .eq("submitted", true);
+  throwIfError(error);
   const submitted = (data ?? []).map(mapEvaluation);
   if (submitted.length === 0) return 0;
   const total = submitted.reduce(
@@ -64,13 +67,41 @@ export async function getJudgeScore(teamId: string): Promise<number> {
   return Math.round(total / submitted.length);
 }
 
+// One query for every team's judge average, for the leaderboard (which
+// otherwise calls getJudgeScore per team, each hitting judge_evaluations).
+export async function getJudgeScores(): Promise<Record<string, number>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("judge_evaluations")
+    .select("judge_id, team_id, criteria_scores, memo, submitted")
+    .eq("submitted", true);
+  throwIfError(error);
+  const byTeam = new Map<string, JudgeEvaluation[]>();
+  for (const row of data ?? []) {
+    const evaluation = mapEvaluation(row);
+    const list = byTeam.get(evaluation.teamId) ?? [];
+    list.push(evaluation);
+    byTeam.set(evaluation.teamId, list);
+  }
+  return Object.fromEntries(
+    [...byTeam].map(([teamId, evaluations]) => {
+      const total = evaluations.reduce(
+        (sum, evaluation) => sum + getEvaluationTotal(evaluation),
+        0,
+      );
+      return [teamId, Math.round(total / evaluations.length)];
+    }),
+  );
+}
+
 export async function getInvestmentWeight(): Promise<number> {
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("app_settings")
     .select("investment_percent")
     .eq("id", true)
-    .single();
+    .maybeSingle();
+  throwIfError(error);
   return data?.investment_percent ?? 50;
 }
 
@@ -87,17 +118,32 @@ export async function getFinalScore(teamId: string): Promise<number> {
   );
 }
 
+// Fetches totals/weight/judge scores once (not once per team, unlike
+// looping getInvestmentScore/getJudgeScore/getFinalScore per team) and
+// computes every team's entry from that in memory.
 export async function getScoreLeaderboard(): Promise<ScoreLeaderboardEntry[]> {
-  const teams = await listTeams();
-  const entries = await Promise.all(
-    teams.map(async (team) => {
-      const [investmentScore, judgeScore, finalScore] = await Promise.all([
-        getInvestmentScore(team.id),
-        getJudgeScore(team.id),
-        getFinalScore(team.id),
-      ]);
-      return { teamId: team.id, investmentScore, judgeScore, finalScore };
-    }),
+  const [teams, totals, investmentPercent, judgeScores] = await Promise.all([
+    listTeams(),
+    getTeamInvestmentTotals(),
+    getInvestmentWeight(),
+    getJudgeScores(),
+  ]);
+  const investmentWeight = investmentPercent / 100;
+  const judgeWeight = 1 - investmentWeight;
+  const maxAmount = Math.max(0, ...totals.map((entry) => entry.amount));
+  const amountByTeam = Object.fromEntries(
+    totals.map((entry) => [entry.teamId, entry.amount]),
   );
+
+  const entries = teams.map((team) => {
+    const amount = amountByTeam[team.id] ?? 0;
+    const investmentScore =
+      maxAmount > 0 ? Math.round((amount / maxAmount) * 100) : 0;
+    const judgeScore = judgeScores[team.id] ?? 0;
+    const finalScore = Math.round(
+      investmentScore * investmentWeight + judgeScore * judgeWeight,
+    );
+    return { teamId: team.id, investmentScore, judgeScore, finalScore };
+  });
   return entries.sort((a, b) => b.finalScore - a.finalScore);
 }

@@ -10,7 +10,6 @@ import {
   SegmentedControl,
   SegmentedControlItem,
 } from "seed-design/ui/segmented-control";
-import { maskInvestorName } from "@/entities/investment/model/pure";
 import { getSeedAvatarUrl } from "@/shared/lib/seed-avatar";
 import { getTransactionsAction } from "../model/actions";
 
@@ -32,8 +31,8 @@ export function InvestmentTransactions({
   const [filter, setFilter] = useState<Filter>("all");
 
   const { data: allTransactions = [] } = useQuery({
-    queryKey: ["transactions", teamId],
-    queryFn: () => getTransactionsAction(teamId),
+    queryKey: ["transactions", teamId, anonymize],
+    queryFn: () => getTransactionsAction(teamId, anonymize),
   });
   const transactions = allTransactions.filter(
     (tx) => filter === "all" || tx.type === filter,
@@ -64,9 +63,7 @@ export function InvestmentTransactions({
                   fallback={<IdentityPlaceholder />}
                 />
               }
-              title={
-                anonymize ? maskInvestorName(tx.investorName) : tx.investorName
-              }
+              title={tx.investorName}
               suffix={
                 <MannerTemp
                   level={tx.type === "buy" ? "l9" : "l2"}

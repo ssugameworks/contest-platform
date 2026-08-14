@@ -2,6 +2,7 @@
 
 import { type Investor, listInvestors } from "@/entities/investor";
 import { createAdminClient } from "@/shared/lib/supabase/admin";
+import { manageInvestorSchema } from "./schema";
 
 export async function listInvestorsAction(): Promise<Investor[]> {
   return listInvestors();
@@ -16,11 +17,12 @@ export interface InvestorWriteInput {
 export async function createInvestorAction(
   input: InvestorWriteInput,
 ): Promise<void> {
+  const parsed = manageInvestorSchema.parse(input);
   const supabase = createAdminClient();
   const { error } = await supabase.from("investors").insert({
-    name: input.name,
-    student_id: input.studentId,
-    total_budget: input.totalBudget,
+    name: parsed.name,
+    student_id: parsed.studentId,
+    total_budget: parsed.totalBudget,
   });
   if (error) throw new Error(error.message);
 }
@@ -29,13 +31,14 @@ export async function updateInvestorAction(
   id: string,
   input: InvestorWriteInput,
 ): Promise<void> {
+  const parsed = manageInvestorSchema.parse(input);
   const supabase = createAdminClient();
   const { error } = await supabase
     .from("investors")
     .update({
-      name: input.name,
-      student_id: input.studentId,
-      total_budget: input.totalBudget,
+      name: parsed.name,
+      student_id: parsed.studentId,
+      total_budget: parsed.totalBudget,
     })
     .eq("id", id);
   if (error) throw new Error(error.message);

@@ -11,11 +11,11 @@ import {
   TextFieldTextarea,
 } from "seed-design/ui/text-field";
 import type { Team } from "@/entities/team";
-import { updateTeamAction } from "@/features/manage-team/model/actions";
 import {
   type ManageTeamInput,
   manageTeamSchema,
-} from "@/features/manage-team/model/schema";
+} from "@/entities/team/model/schema";
+import { updateTeamAction } from "@/features/manage-team/model/actions";
 
 export function EditTeamProfileForm({ team }: { team: Team }) {
   const adapter = useSnackbarAdapter();
