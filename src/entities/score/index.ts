@@ -1,0 +1,15 @@
+export {
+  getEvaluation,
+  getEvaluationTotal,
+  getFinalScore,
+  getInvestmentScore,
+  getJudgeScore,
+  getScoreLeaderboard,
+  type JudgeEvaluation,
+  mockJudgeEvaluations,
+  resetScores,
+  type ScoreLeaderboardEntry,
+  scoreWeights,
+  setInvestmentWeight,
+  upsertEvaluation,
+} from "./model/score";

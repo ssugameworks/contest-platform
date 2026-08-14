@@ -1,0 +1,20 @@
+#!/bin/sh
+# Enforces: type: text (#issue-number)
+# e.g. feat: 랜딩페이지 히어로 섹션 추가 (#12)
+
+msg_file="$1"
+first_line=$(head -n1 "$msg_file")
+
+case "$first_line" in
+  "Merge "*|"Revert "*) exit 0 ;;
+esac
+
+pattern='^(feat|fix|docs|style|refactor|perf|test|chore|build|ci): .+ \(#[0-9]+\)$'
+
+if ! echo "$first_line" | grep -qE "$pattern"; then
+  echo "커밋 메시지 형식이 맞지 않아요:"
+  echo "  type: text (#이슈번호)"
+  echo "  예) feat: 랜딩페이지 히어로 섹션 추가 (#12)"
+  echo "  type: feat|fix|docs|style|refactor|perf|test|chore|build|ci"
+  exit 1
+fi
