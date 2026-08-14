@@ -1,6 +1,7 @@
 import {
   IconGridFill,
   IconPeople3Fill,
+  IconPersonFill,
   IconTrophyFill,
   IconWonCircleFill,
 } from "@karrotmarket/react-monochrome-icon";
@@ -13,6 +14,11 @@ export const metadata: Metadata = { title: "관리자 대시보드" };
 
 const NAV_ITEMS = [
   { label: "개요", href: "/admin/dashboard", icon: <IconGridFill /> },
+  {
+    label: "참가자 관리",
+    href: "/admin/dashboard/participants",
+    icon: <IconPersonFill />,
+  },
   {
     label: "팀 관리",
     href: "/admin/dashboard/teams",

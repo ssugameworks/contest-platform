@@ -2,11 +2,17 @@
 
 import { Box, Text, VStack } from "@seed-design/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ActionButton } from "seed-design/ui/action-button";
 import { getScoreLeaderboardAction } from "@/entities/score/model/actions";
 import { listTeamsAction } from "@/entities/team/model/actions";
+import { useRealtimeRefetch } from "@/shared/lib/supabase/use-realtime-refetch";
 
 const QUERY_KEY = ["leaderboard"];
+const REALTIME_TABLES = [
+  "teams",
+  "transactions",
+  "judge_evaluations",
+  "app_settings",
+];
 
 export default function LeaderboardPage() {
   const queryClient = useQueryClient();
@@ -17,6 +23,11 @@ export default function LeaderboardPage() {
   const { data: teams = [] } = useQuery({
     queryKey: ["teams"],
     queryFn: listTeamsAction,
+  });
+
+  useRealtimeRefetch("leaderboard-realtime", REALTIME_TABLES, () => {
+    queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+    queryClient.invalidateQueries({ queryKey: ["teams"] });
   });
 
   return (
@@ -38,22 +49,12 @@ export default function LeaderboardPage() {
         >
           실시간 순위
         </Text>
-        <ActionButton
-          type="button"
-          variant="neutralOutline"
-          style={{
-            alignSelf: "center",
-            marginBottom: "var(--seed-dimension-x8)",
-          }}
-          onClick={() => {
-            queryClient.invalidateQueries({ queryKey: QUERY_KEY });
-            queryClient.invalidateQueries({ queryKey: ["teams"] });
-          }}
-        >
-          새로고침
-        </ActionButton>
 
-        <VStack gap="x3" width="full">
+        <VStack
+          gap="x3"
+          width="full"
+          style={{ marginTop: "var(--seed-dimension-x8)" }}
+        >
           {entries.map((entry, index) => {
             const team = teams.find((t) => t.id === entry.teamId);
             const isTop = index === 0;

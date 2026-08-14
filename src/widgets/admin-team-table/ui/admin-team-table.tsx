@@ -106,19 +106,18 @@ export function AdminTeamTable() {
               {`모금액 ${sortDesc ? "↓" : "↑"}`}
             </TableHeadCell>
             <TableHeadCell align="right">투자자 수</TableHeadCell>
-            <TableHeadCell align="right">등수</TableHeadCell>
             <TableHeadCell>부스 위치</TableHeadCell>
           </TableRow>
         </TableHead>
         <TableBody>
           {isRowsPending && (
             <TableRow>
-              <TableCell colSpan={5}>불러오는 중이에요...</TableCell>
+              <TableCell colSpan={4}>불러오는 중이에요...</TableCell>
             </TableRow>
           )}
           {isRowsError && (
             <TableRow>
-              <TableCell colSpan={5}>목록을 불러오지 못했어요</TableCell>
+              <TableCell colSpan={4}>목록을 불러오지 못했어요</TableCell>
             </TableRow>
           )}
           {!isRowsPending &&
@@ -132,7 +131,6 @@ export function AdminTeamTable() {
                 <TableCell>{row.team.name}</TableCell>
                 <TableCell align="right">{`${row.amount.toLocaleString()}원`}</TableCell>
                 <TableCell align="right">{`${row.investorCount}명`}</TableCell>
-                <TableCell align="right">{`${row.rank}위`}</TableCell>
                 <TableCell>{row.boothLabel}</TableCell>
               </TableRow>
             ))}

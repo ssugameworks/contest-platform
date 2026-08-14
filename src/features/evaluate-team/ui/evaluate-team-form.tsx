@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { HStack, Text, VStack } from "@seed-design/react";
+import { VStack } from "@seed-design/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { forwardRef, useEffect, useImperativeHandle } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
@@ -11,14 +11,12 @@ import {
   TextFieldTextarea,
 } from "seed-design/ui/text-field";
 import { rubricCriteria, rubricMaxTotal } from "@/entities/rubric";
-import { getEvaluationTotal } from "@/entities/score/model/pure";
 import type { Team } from "@/entities/team";
 import { getEvaluationAction, submitEvaluationAction } from "../model/actions";
 import { type EvaluateTeamInput, evaluateTeamSchema } from "../model/schema";
 
 export interface EvaluateTeamFormHandle {
-  saveDraft: () => void;
-  submitFinal: () => void;
+  save: () => void;
 }
 
 export const EvaluateTeamForm = forwardRef<
@@ -64,51 +62,19 @@ export const EvaluateTeamForm = forwardRef<
     onTotalChange?.(Number.isNaN(total) ? 0 : total);
   }, [total, onTotalChange]);
 
-  const save = (submitted: boolean) =>
-    handleSubmit(async (data) => {
-      await submitEvaluationAction(judgeId, team.id, {
-        criteriaScores: data.criteriaScores,
-        memo: data.memo ?? "",
-        submitted,
-      });
-      await queryClient.invalidateQueries({ queryKey });
-      onSaved();
-    })();
+  const save = handleSubmit(async (data) => {
+    await submitEvaluationAction(judgeId, team.id, {
+      criteriaScores: data.criteriaScores,
+      memo: data.memo ?? "",
+    });
+    await queryClient.invalidateQueries({ queryKey });
+    onSaved();
+  });
 
-  useImperativeHandle(ref, () => ({
-    saveDraft: () => save(false),
-    submitFinal: () => save(true),
-  }));
+  useImperativeHandle(ref, () => ({ save }));
 
   if (isPending) {
     return null;
-  }
-
-  if (evaluation?.submitted) {
-    return (
-      <VStack gap="x4" width="full">
-        <Text textStyle="t4Regular" color="fg.neutralSubtle">
-          제출 완료된 채점이에요. 관리자가 잠금을 해제해야 다시 수정할 수
-          있어요.
-        </Text>
-        <VStack gap="x2" width="full">
-          {rubricCriteria.map((criterion) => (
-            <HStack key={criterion.id} width="full" justify="space-between">
-              <Text textStyle="t4Regular">{criterion.label}</Text>
-              <Text textStyle="t4Bold">
-                {`${evaluation.criteriaScores[criterion.id] ?? 0} / ${criterion.maxScore}`}
-              </Text>
-            </HStack>
-          ))}
-        </VStack>
-        <Text textStyle="t6Bold">{`총점 ${getEvaluationTotal(evaluation)}점`}</Text>
-        {evaluation.memo && (
-          <Text textStyle="t4Regular" color="fg.neutralSubtle">
-            {evaluation.memo}
-          </Text>
-        )}
-      </VStack>
-    );
   }
 
   return (

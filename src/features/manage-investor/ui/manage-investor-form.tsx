@@ -1,9 +1,11 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { IconILowercaseSerifCircleLine } from "@karrotmarket/react-monochrome-icon";
 import { VStack } from "@seed-design/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Controller, useForm } from "react-hook-form";
+import { Callout } from "seed-design/ui/callout";
 import { Snackbar, useSnackbarAdapter } from "seed-design/ui/snackbar";
 import { TextField, TextFieldInput } from "seed-design/ui/text-field";
 import type { Investor } from "@/entities/investor";
@@ -108,6 +110,13 @@ export function ManageInvestorForm({
             </TextField>
           )}
         />
+
+        {!investor && (
+          <Callout
+            prefixIcon={<IconILowercaseSerifCircleLine />}
+            description="비밀번호는 투자자가 처음 로그인할 때 입력한 비밀번호가 그대로 등록됩니다."
+          />
+        )}
       </VStack>
     </form>
   );

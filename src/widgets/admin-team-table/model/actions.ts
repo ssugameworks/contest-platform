@@ -4,7 +4,6 @@ import { formatBoothLocation, listBooths } from "@/entities/booth";
 import {
   getInvestorCounts,
   getTeamInvestmentTotals,
-  rankTeams,
 } from "@/entities/investment";
 import { listTeams, type Team } from "@/entities/team";
 
@@ -12,7 +11,6 @@ export interface AdminTeamRow {
   team: Team;
   amount: number;
   investorCount: number;
-  rank: number;
   boothLabel: string;
 }
 
@@ -28,7 +26,6 @@ export async function listAdminTeamRows(): Promise<AdminTeamRow[]> {
   const amountByTeam = Object.fromEntries(
     totals.map((entry) => [entry.teamId, entry.amount]),
   );
-  const ranks = rankTeams(totals);
   const boothByTeam = Object.fromEntries(
     booths.map((booth) => [booth.teamId, booth]),
   );
@@ -39,7 +36,6 @@ export async function listAdminTeamRows(): Promise<AdminTeamRow[]> {
       team,
       amount: amountByTeam[team.id] ?? 0,
       investorCount: investorCounts[team.id] ?? 0,
-      rank: ranks[team.id] ?? 0,
       boothLabel: booth ? formatBoothLocation(booth) : "-",
     };
   });

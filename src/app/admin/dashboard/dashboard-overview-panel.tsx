@@ -1,7 +1,8 @@
 "use client";
 
 import { Box, Grid, HStack, Text, VStack } from "@seed-design/react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRealtimeRefetch } from "@/shared/lib/supabase/use-realtime-refetch";
 import { PageHeader } from "@/shared/ui/page-header";
 import { StatCard } from "@/shared/ui/stat-card";
 import {
@@ -14,21 +15,33 @@ import {
 } from "@/shared/ui/table";
 import { type DashboardStats, getDashboardStats } from "./actions";
 
-// ponytail: polling stand-in for the eventual websocket-driven live feed —
-// swap this interval for a socket subscription once that infra exists.
-const LIVE_POLL_INTERVAL_MS = 4000;
+const QUERY_KEY = ["admin-dashboard-stats"];
+// investors/participants/staff aren't anon-readable (PII, RLS locked down),
+// so investorsCount never updates live — only on next page load.
+const REALTIME_TABLES = [
+  "teams",
+  "transactions",
+  "judge_evaluations",
+  "app_settings",
+];
 
 export function AdminDashboardOverviewPanel({
   initialStats,
 }: {
   initialStats: DashboardStats;
 }) {
+  const queryClient = useQueryClient();
   const { data: stats, dataUpdatedAt } = useQuery({
-    queryKey: ["admin-dashboard-stats"],
+    queryKey: QUERY_KEY,
     queryFn: getDashboardStats,
     initialData: initialStats,
-    refetchInterval: LIVE_POLL_INTERVAL_MS,
   });
+
+  const isLive = useRealtimeRefetch(
+    "admin-dashboard-realtime",
+    REALTIME_TABLES,
+    () => queryClient.invalidateQueries({ queryKey: QUERY_KEY }),
+  );
 
   const totalAmount = stats.totals.reduce(
     (sum, entry) => sum + entry.amount,
@@ -68,10 +81,12 @@ export function AdminDashboardOverviewPanel({
                 width: 8,
                 height: 8,
                 borderRadius: "50%",
-                background: "var(--seed-color-bg-positive-solid)",
+                background: isLive
+                  ? "var(--seed-color-bg-positive-solid)"
+                  : "var(--seed-color-bg-neutral-solid)",
               }}
             />
-            <Text textStyle="t5Bold">실시간 투자 현황</Text>
+            <Text textStyle="t5Bold">투자 현황</Text>
           </HStack>
           <Text textStyle="t3Regular" color="fg.neutralSubtle">
             {`${new Date(dataUpdatedAt).toLocaleTimeString("ko-KR", { timeZone: "Asia/Seoul" })} 기준`}

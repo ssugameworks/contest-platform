@@ -1,9 +1,8 @@
 "use client";
 
-import { HStack, Text, VStack } from "@seed-design/react";
+import { Text, VStack } from "@seed-design/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { ActionButton } from "seed-design/ui/action-button";
 import { TextField, TextFieldInput } from "seed-design/ui/text-field";
 import {
   getInvestmentWeightAction,
@@ -15,7 +14,6 @@ import type { JudgeEvaluation } from "@/entities/score/model/pure";
 import { getEvaluationTotal } from "@/entities/score/model/pure";
 import { listJudgesAction } from "@/entities/staff/model/actions";
 import { listTeamsAction } from "@/entities/team/model/actions";
-import { unlockEvaluationAction } from "@/features/evaluate-team/model/actions";
 import {
   Table,
   TableBody,
@@ -25,14 +23,12 @@ import {
   TableRow,
 } from "@/shared/ui/table";
 
-type SortKey = "investmentScore" | "judgeScore" | "finalScore";
+type SortKey = "investmentScore" | "finalScore";
 
 function JudgeCell({
   evaluation,
-  onUnlock,
 }: {
   evaluation: JudgeEvaluation | undefined;
-  onUnlock: () => void;
 }) {
   if (!evaluation?.submitted) {
     return (
@@ -43,22 +39,12 @@ function JudgeCell({
   }
 
   return (
-    <HStack gap="x2" align="center">
-      <Text
-        textStyle="t4Regular"
-        style={{ color: "var(--seed-color-fg-positive)" }}
-      >
-        {`제출완료 (${getEvaluationTotal(evaluation)}점)`}
-      </Text>
-      <ActionButton
-        type="button"
-        variant="ghost"
-        size="xsmall"
-        onClick={onUnlock}
-      >
-        잠금 해제
-      </ActionButton>
-    </HStack>
+    <Text
+      textStyle="t4Regular"
+      style={{ color: "var(--seed-color-fg-positive)" }}
+    >
+      {`제출완료 (${getEvaluationTotal(evaluation)}점)`}
+    </Text>
   );
 }
 
@@ -105,11 +91,6 @@ export function AdminScoreTable() {
     }
   };
 
-  const unlock = async (judgeId: string, teamId: string) => {
-    await unlockEvaluationAction(judgeId, teamId);
-    queryClient.invalidateQueries({ queryKey: ["evaluations"] });
-  };
-
   return (
     <VStack gap="x4" width="full">
       <TextField
@@ -146,12 +127,6 @@ export function AdminScoreTable() {
             ))}
             <TableHeadCell
               align="right"
-              onClick={() => toggleSort("judgeScore")}
-            >
-              {`심사위원 평균 ${sortKey === "judgeScore" ? (sortDesc ? "↓" : "↑") : ""}`}
-            </TableHeadCell>
-            <TableHeadCell
-              align="right"
               onClick={() => toggleSort("investmentScore")}
             >
               {`투자 점수 ${sortKey === "investmentScore" ? (sortDesc ? "↓" : "↑") : ""}`}
@@ -178,11 +153,9 @@ export function AdminScoreTable() {
                         (e) =>
                           e.judgeId === judge.id && e.teamId === entry.teamId,
                       )}
-                      onUnlock={() => unlock(judge.id, entry.teamId)}
                     />
                   </TableCell>
                 ))}
-                <TableCell align="right">{entry.judgeScore}</TableCell>
                 <TableCell align="right">{entry.investmentScore}</TableCell>
                 <TableCell align="right">{entry.finalScore}</TableCell>
               </TableRow>

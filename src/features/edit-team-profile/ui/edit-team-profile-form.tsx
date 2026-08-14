@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { VStack } from "@seed-design/react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { ActionButton } from "seed-design/ui/action-button";
 import { Snackbar, useSnackbarAdapter } from "seed-design/ui/snackbar";
@@ -15,10 +16,17 @@ import {
   type ManageTeamInput,
   manageTeamSchema,
 } from "@/entities/team/model/schema";
+import { TeamImageUploadField } from "@/features/manage-team";
 import { updateMyTeamAction } from "../model/actions";
 
 export function EditTeamProfileForm({ team }: { team: Team }) {
   const adapter = useSnackbarAdapter();
+  const [imageUrl, setImageUrl] = useState<string[]>(
+    team.imageUrl ? [team.imageUrl] : [],
+  );
+  const [screenshotUrls, setScreenshotUrls] = useState<string[]>(
+    team.screenshotUrls,
+  );
   const {
     register,
     handleSubmit,
@@ -28,9 +36,7 @@ export function EditTeamProfileForm({ team }: { team: Team }) {
     defaultValues: {
       name: team.name,
       description: team.description,
-      imageUrl: team.imageUrl ?? "",
       tags: team.tags.join(", "),
-      screenshotUrls: team.screenshotUrls.join(", "),
       landingPageUrl: team.landingPageUrl ?? "",
     },
   });
@@ -42,17 +48,11 @@ export function EditTeamProfileForm({ team }: { team: Team }) {
           .map((tag) => tag.trim())
           .filter(Boolean)
       : [];
-    const screenshotUrls = data.screenshotUrls
-      ? data.screenshotUrls
-          .split(",")
-          .map((url) => url.trim())
-          .filter(Boolean)
-      : [];
 
     await updateMyTeamAction({
       name: data.name,
       description: data.description,
-      imageUrl: data.imageUrl || null,
+      imageUrl: imageUrl[0] ?? null,
       landingPageUrl: data.landingPageUrl || null,
       tags,
       screenshotUrls,
@@ -91,18 +91,12 @@ export function EditTeamProfileForm({ team }: { team: Team }) {
           />
         </TextField>
 
-        <TextField
-          label="팀 로고 이미지 URL"
-          defaultValue={team.imageUrl ?? ""}
-          invalid={!!errors.imageUrl}
-          errorMessage={errors.imageUrl?.message}
-        >
-          <TextFieldInput
-            type="url"
-            placeholder="https://example.com/logo.png"
-            {...register("imageUrl")}
-          />
-        </TextField>
+        <TeamImageUploadField
+          label="팀 로고 이미지"
+          maxFiles={1}
+          urls={imageUrl}
+          onUrlsChange={setImageUrl}
+        />
 
         <TextField
           label="태그"
@@ -117,18 +111,12 @@ export function EditTeamProfileForm({ team }: { team: Team }) {
           />
         </TextField>
 
-        <TextField
-          label="제품 스크린샷 URL"
-          description="쉼표(,)로 구분해서 입력해주세요"
-          defaultValue={team.screenshotUrls.join(", ")}
-          invalid={!!errors.screenshotUrls}
-          errorMessage={errors.screenshotUrls?.message}
-        >
-          <TextFieldInput
-            placeholder="https://example.com/1.png, https://example.com/2.png"
-            {...register("screenshotUrls")}
-          />
-        </TextField>
+        <TeamImageUploadField
+          label="제품 스크린샷"
+          maxFiles={5}
+          urls={screenshotUrls}
+          onUrlsChange={setScreenshotUrls}
+        />
 
         <TextField
           label="랜딩페이지 링크"

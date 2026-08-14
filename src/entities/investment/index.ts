@@ -11,4 +11,4 @@ export {
   type Transaction,
   type TransactionType,
 } from "./model/investment";
-export { MIN_TRADE_AMOUNT, rankTeams } from "./model/pure";
+export { MIN_TRADE_AMOUNT } from "./model/pure";
