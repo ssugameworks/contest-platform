@@ -12,6 +12,7 @@ import {
 } from "seed-design/ui/bottom-sheet";
 import { getBoothByTeamIdAction } from "@/entities/booth/model/actions";
 import { formatBoothLocation } from "@/entities/booth/model/pure";
+import { listEvaluationsAction } from "@/entities/score/model/actions";
 import { getEvaluationTotal } from "@/entities/score/model/pure";
 import type { Team } from "@/entities/team";
 import { listTeamsAction } from "@/entities/team/model/actions";
@@ -19,7 +20,6 @@ import {
   EvaluateTeamForm,
   type EvaluateTeamFormHandle,
 } from "@/features/evaluate-team";
-import { getEvaluationAction } from "@/features/evaluate-team/model/actions";
 import {
   Table,
   TableBody,
@@ -37,20 +37,6 @@ function BoothCell({ teamId }: { teamId: string }) {
   return <>{booth ? formatBoothLocation(booth) : "-"}</>;
 }
 
-function StatusCell({ judgeId, teamId }: { judgeId: string; teamId: string }) {
-  const { data: evaluation } = useQuery({
-    queryKey: ["evaluation", judgeId, teamId],
-    queryFn: () => getEvaluationAction(judgeId, teamId),
-  });
-  return (
-    <>
-      {evaluation?.submitted
-        ? `제출완료 (${getEvaluationTotal(evaluation)}점)`
-        : "미채점"}
-    </>
-  );
-}
-
 export function JudgeTeamList({ judgeId }: { judgeId: string }) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -62,29 +48,35 @@ export function JudgeTeamList({ judgeId }: { judgeId: string }) {
     queryKey: ["teams"],
     queryFn: listTeamsAction,
   });
-  const { data: activeEvaluation } = useQuery({
-    queryKey: ["evaluation", judgeId, activeTeam?.id],
-    queryFn: () =>
-      activeTeam ? getEvaluationAction(judgeId, activeTeam.id) : null,
-    enabled: !!activeTeam,
+  // One query for every team's evaluation by this judge, instead of a
+  // separate request per row (status cell) + per open (bottom sheet).
+  const { data: evaluations = [] } = useQuery({
+    queryKey: ["evaluations"],
+    queryFn: listEvaluationsAction,
   });
+  const myEvaluations = evaluations.filter((e) => e.judgeId === judgeId);
+  const activeEvaluation = activeTeam
+    ? myEvaluations.find((e) => e.teamId === activeTeam.id)
+    : undefined;
   const isReadOnly = activeEvaluation?.submitted ?? false;
+  const submittedCount = myEvaluations.filter((e) => e.submitted).length;
 
-  const openTeam = async (team: Team) => {
+  const openTeam = (team: Team) => {
     setActiveTeam(team);
-    const evaluation = await getEvaluationAction(judgeId, team.id);
+    const evaluation = myEvaluations.find((e) => e.teamId === team.id);
     setLiveTotal(getEvaluationTotal(evaluation));
     setOpen(true);
   };
   const refresh = () => {
-    queryClient.invalidateQueries({ queryKey: ["evaluation", judgeId] });
-    queryClient.invalidateQueries({ queryKey: ["submitted-count", judgeId] });
+    queryClient.invalidateQueries({ queryKey: ["evaluations"] });
     setOpen(false);
   };
 
   return (
     <VStack gap="x4" width="full">
-      <SubmittedCount judgeId={judgeId} teams={teams} />
+      <Text textStyle="t4Regular" color="fg.neutralSubtle">
+        {`${submittedCount} / ${teams.length}팀 채점 완료`}
+      </Text>
 
       <Table>
         <TableHead>
@@ -95,17 +87,26 @@ export function JudgeTeamList({ judgeId }: { judgeId: string }) {
           </TableRow>
         </TableHead>
         <TableBody>
-          {teams.map((team) => (
-            <TableRow key={team.id} interactive onClick={() => openTeam(team)}>
-              <TableCell>{team.name}</TableCell>
-              <TableCell align="right">
-                <StatusCell judgeId={judgeId} teamId={team.id} />
-              </TableCell>
-              <TableCell>
-                <BoothCell teamId={team.id} />
-              </TableCell>
-            </TableRow>
-          ))}
+          {teams.map((team) => {
+            const evaluation = myEvaluations.find((e) => e.teamId === team.id);
+            return (
+              <TableRow
+                key={team.id}
+                interactive
+                onClick={() => openTeam(team)}
+              >
+                <TableCell>{team.name}</TableCell>
+                <TableCell align="right">
+                  {evaluation?.submitted
+                    ? `제출완료 (${getEvaluationTotal(evaluation)}점)`
+                    : "미채점"}
+                </TableCell>
+                <TableCell>
+                  <BoothCell teamId={team.id} />
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
 
@@ -161,30 +162,5 @@ export function JudgeTeamList({ judgeId }: { judgeId: string }) {
         </BottomSheetContent>
       </BottomSheetRoot>
     </VStack>
-  );
-}
-
-function SubmittedCount({
-  judgeId,
-  teams,
-}: {
-  judgeId: string;
-  teams: Team[];
-}) {
-  const { data: submittedCount = 0 } = useQuery({
-    queryKey: ["submitted-count", judgeId, teams.map((t) => t.id)],
-    queryFn: async () => {
-      const evaluations = await Promise.all(
-        teams.map((team) => getEvaluationAction(judgeId, team.id)),
-      );
-      return evaluations.filter((e) => e?.submitted).length;
-    },
-    enabled: teams.length > 0,
-  });
-
-  return (
-    <Text textStyle="t4Regular" color="fg.neutralSubtle">
-      {`${submittedCount} / ${teams.length}팀 채점 완료`}
-    </Text>
   );
 }

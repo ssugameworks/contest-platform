@@ -8,15 +8,14 @@ import { TextField, TextFieldInput } from "seed-design/ui/text-field";
 import {
   getInvestmentWeightAction,
   getScoreLeaderboardAction,
+  listEvaluationsAction,
   setInvestmentWeightAction,
 } from "@/entities/score/model/actions";
+import type { JudgeEvaluation } from "@/entities/score/model/pure";
 import { getEvaluationTotal } from "@/entities/score/model/pure";
 import { listJudgesAction } from "@/entities/staff/model/actions";
 import { listTeamsAction } from "@/entities/team/model/actions";
-import {
-  getEvaluationAction,
-  unlockEvaluationAction,
-} from "@/features/evaluate-team/model/actions";
+import { unlockEvaluationAction } from "@/features/evaluate-team/model/actions";
 import {
   Table,
   TableBody,
@@ -28,14 +27,13 @@ import {
 
 type SortKey = "investmentScore" | "judgeScore" | "finalScore";
 
-function JudgeCell({ judgeId, teamId }: { judgeId: string; teamId: string }) {
-  const queryClient = useQueryClient();
-  const queryKey = ["evaluation", judgeId, teamId];
-  const { data: evaluation } = useQuery({
-    queryKey,
-    queryFn: () => getEvaluationAction(judgeId, teamId),
-  });
-
+function JudgeCell({
+  evaluation,
+  onUnlock,
+}: {
+  evaluation: JudgeEvaluation | undefined;
+  onUnlock: () => void;
+}) {
   if (!evaluation?.submitted) {
     return (
       <Text textStyle="t4Regular" color="fg.neutralSubtle">
@@ -56,10 +54,7 @@ function JudgeCell({ judgeId, teamId }: { judgeId: string; teamId: string }) {
         type="button"
         variant="ghost"
         size="xsmall"
-        onClick={async () => {
-          await unlockEvaluationAction(judgeId, teamId);
-          queryClient.invalidateQueries({ queryKey });
-        }}
+        onClick={onUnlock}
       >
         잠금 해제
       </ActionButton>
@@ -84,6 +79,12 @@ export function AdminScoreTable() {
     queryKey: ["judges"],
     queryFn: listJudgesAction,
   });
+  // One query for every judge×team evaluation, instead of a request per
+  // table cell.
+  const { data: evaluations = [] } = useQuery({
+    queryKey: ["evaluations"],
+    queryFn: listEvaluationsAction,
+  });
   const { data: weight = 50 } = useQuery({
     queryKey: ["investment-weight"],
     queryFn: getInvestmentWeightAction,
@@ -102,6 +103,11 @@ export function AdminScoreTable() {
       setSortKey(key);
       setSortDesc(true);
     }
+  };
+
+  const unlock = async (judgeId: string, teamId: string) => {
+    await unlockEvaluationAction(judgeId, teamId);
+    queryClient.invalidateQueries({ queryKey: ["evaluations"] });
   };
 
   return (
@@ -167,7 +173,13 @@ export function AdminScoreTable() {
                 <TableCell>{team?.name ?? entry.teamId}</TableCell>
                 {judges.map((judge) => (
                   <TableCell key={judge.id}>
-                    <JudgeCell judgeId={judge.id} teamId={entry.teamId} />
+                    <JudgeCell
+                      evaluation={evaluations.find(
+                        (e) =>
+                          e.judgeId === judge.id && e.teamId === entry.teamId,
+                      )}
+                      onUnlock={() => unlock(judge.id, entry.teamId)}
+                    />
                   </TableCell>
                 ))}
                 <TableCell align="right">{entry.judgeScore}</TableCell>
