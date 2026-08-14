@@ -55,10 +55,6 @@ export function JudgeTeamList({ judgeId }: { judgeId: string }) {
     queryFn: listEvaluationsAction,
   });
   const myEvaluations = evaluations.filter((e) => e.judgeId === judgeId);
-  const activeEvaluation = activeTeam
-    ? myEvaluations.find((e) => e.teamId === activeTeam.id)
-    : undefined;
-  const isReadOnly = activeEvaluation?.submitted ?? false;
   const submittedCount = myEvaluations.filter((e) => e.submitted).length;
 
   const openTeam = (team: Team) => {
@@ -129,7 +125,7 @@ export function JudgeTeamList({ judgeId }: { judgeId: string }) {
               </ScrollFog>
             </Box>
           </BottomSheetBody>
-          {!isReadOnly && activeTeam && (
+          {activeTeam && (
             <BottomSheetFooter>
               <HStack
                 gap="x2"
@@ -138,24 +134,14 @@ export function JudgeTeamList({ judgeId }: { judgeId: string }) {
                 align="center"
               >
                 <Text textStyle="t6Bold">{`총점 ${liveTotal}점`}</Text>
-                <HStack gap="x2">
-                  <ActionButton
-                    type="button"
-                    variant="neutralWeak"
-                    size="large"
-                    onClick={() => formRef.current?.saveDraft()}
-                  >
-                    임시 저장
-                  </ActionButton>
-                  <ActionButton
-                    type="button"
-                    variant="brandSolid"
-                    size="large"
-                    onClick={() => formRef.current?.submitFinal()}
-                  >
-                    제출 확정
-                  </ActionButton>
-                </HStack>
+                <ActionButton
+                  type="button"
+                  variant="brandSolid"
+                  size="large"
+                  onClick={() => formRef.current?.save()}
+                >
+                  저장
+                </ActionButton>
               </HStack>
             </BottomSheetFooter>
           )}

@@ -18,7 +18,6 @@ export async function submitEvaluationAction(
   patch: {
     criteriaScores: Record<string, number>;
     memo: string;
-    submitted: boolean;
   },
 ): Promise<void> {
   const supabase = createAdminClient();
@@ -28,23 +27,10 @@ export async function submitEvaluationAction(
       team_id: teamId,
       criteria_scores: patch.criteriaScores,
       memo: patch.memo,
-      submitted: patch.submitted,
+      submitted: true,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "judge_id,team_id" },
   );
-  if (error) throw new Error(error.message);
-}
-
-export async function unlockEvaluationAction(
-  judgeId: string,
-  teamId: string,
-): Promise<void> {
-  const supabase = createAdminClient();
-  const { error } = await supabase
-    .from("judge_evaluations")
-    .update({ submitted: false, updated_at: new Date().toISOString() })
-    .eq("judge_id", judgeId)
-    .eq("team_id", teamId);
   if (error) throw new Error(error.message);
 }
