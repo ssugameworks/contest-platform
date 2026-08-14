@@ -80,20 +80,13 @@ export function TeamShowcase({
       <ActionButton
         variant="neutralWeak"
         size="large"
-        className="w-full"
-        onClick={shareStub}
-      >
-        <IconKakaoTalk width={16} height={16} />
-        카카오톡 공유
-      </ActionButton>
-      <ActionButton
-        variant="neutralWeak"
-        size="large"
-        className="w-full"
+        flexGrow={1}
         onClick={copyLink}
       >
-        <IconCheckmarkClipboardLine width={16} height={16} />
-        링크 복사
+        공유
+      </ActionButton>
+      <ActionButton variant="neutralWeak" size="large" flexGrow={3} asChild>
+        <Link href="/participant/dashboard">대시보드</Link>
       </ActionButton>
     </HStack>
   ) : null;
