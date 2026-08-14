@@ -23,12 +23,10 @@ export function InvestorLoginForm() {
   });
 
   const onSubmit = handleSubmit(async ({ studentId, name }) => {
-    try {
-      await investorLoginOrSignupAction(studentId, name ?? "");
-    } catch (error) {
-      setError("studentId", {
-        message: error instanceof Error ? error.message : "가입에 실패했어요",
-      });
+    const result = await investorLoginOrSignupAction(studentId, name ?? "");
+    if (!result.ok) {
+      const field = result.message.includes("이름") ? "name" : "studentId";
+      setError(field, { message: result.message });
       return;
     }
     adapter.create({
@@ -56,6 +54,8 @@ export function InvestorLoginForm() {
         <TextField
           label="이름"
           description="처음 가입하는 경우에만 입력해주세요"
+          invalid={!!errors.name}
+          errorMessage={errors.name?.message}
         >
           <TextFieldInput placeholder="홍길동" {...register("name")} />
         </TextField>

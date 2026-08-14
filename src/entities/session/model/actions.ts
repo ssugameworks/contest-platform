@@ -8,6 +8,14 @@ import {
 } from "@/shared/lib/session/cookie";
 import { createAdminClient } from "@/shared/lib/supabase/admin";
 
+// Server Actions have thrown Error messages stripped to a generic string in
+// production builds, so the friendly copy below ("학번을 다시 확인해주세요"
+// etc.) would silently disappear once deployed — return a plain result
+// instead of throwing so the message actually reaches the client.
+export type ActionResult<T = Record<never, never>> =
+  | ({ ok: true } & T)
+  | { ok: false; message: string };
+
 async function setSessionCookie(studentId: string): Promise<void> {
   const store = await cookies();
   store.set(SESSION_COOKIE_NAME, signSession(studentId), {
@@ -21,24 +29,27 @@ async function setSessionCookie(studentId: string): Promise<void> {
 
 export async function participantLoginAction(
   studentId: string,
-): Promise<{ teamId: string | null }> {
+): Promise<ActionResult<{ teamId: string | null }>> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("participants")
     .select("student_id, team_members(team_id)")
     .eq("student_id", studentId)
     .maybeSingle();
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("학번을 다시 확인해주세요");
+  if (error) {
+    console.error(error);
+    return { ok: false, message: "로그인에 실패했어요" };
+  }
+  if (!data) return { ok: false, message: "학번을 다시 확인해주세요" };
 
   await setSessionCookie(studentId);
-  return { teamId: data.team_members?.team_id ?? null };
+  return { ok: true, teamId: data.team_members?.team_id ?? null };
 }
 
 export async function investorLoginOrSignupAction(
   studentId: string,
   name: string,
-): Promise<void> {
+): Promise<ActionResult> {
   const supabase = createAdminClient();
 
   const { data: investor, error: investorError } = await supabase
@@ -46,10 +57,13 @@ export async function investorLoginOrSignupAction(
     .select("id")
     .eq("student_id", studentId)
     .maybeSingle();
-  if (investorError) throw new Error(investorError.message);
+  if (investorError) {
+    console.error(investorError);
+    return { ok: false, message: "가입에 실패했어요" };
+  }
   if (investor) {
     await setSessionCookie(studentId);
-    return;
+    return { ok: true };
   }
 
   const { data: participant, error: participantError } = await supabase
@@ -57,19 +71,36 @@ export async function investorLoginOrSignupAction(
     .select("student_id")
     .eq("student_id", studentId)
     .maybeSingle();
-  if (participantError) throw new Error(participantError.message);
+  if (participantError) {
+    console.error(participantError);
+    return { ok: false, message: "가입에 실패했어요" };
+  }
   if (participant) {
-    throw new Error("참가자로 등록된 학번은 투자자로 가입할 수 없어요");
+    return {
+      ok: false,
+      message: "참가자로 등록된 학번은 투자자로 가입할 수 없어요",
+    };
   }
 
-  if (!name.trim()) throw new Error("이름을 입력해주세요");
-  const { error: insertError } = await supabase.from("investors").insert({
-    student_id: studentId,
-    name: name.trim(),
-  });
-  if (insertError) throw new Error(insertError.message);
+  if (!name.trim()) return { ok: false, message: "이름을 입력해주세요" };
+
+  // upsert + ignoreDuplicates instead of insert: two concurrent signups for
+  // the same student_id would otherwise race on the unique constraint and
+  // one request would surface a raw duplicate-key error instead of just
+  // logging in.
+  const { error: insertError } = await supabase
+    .from("investors")
+    .upsert(
+      { student_id: studentId, name: name.trim() },
+      { onConflict: "student_id", ignoreDuplicates: true },
+    );
+  if (insertError) {
+    console.error(insertError);
+    return { ok: false, message: "가입에 실패했어요" };
+  }
 
   await setSessionCookie(studentId);
+  return { ok: true };
 }
 
 export async function logoutAction(): Promise<void> {

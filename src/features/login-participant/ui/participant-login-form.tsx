@@ -26,12 +26,9 @@ export function ParticipantLoginForm() {
   });
 
   const onSubmit = handleSubmit(async ({ studentId }) => {
-    try {
-      await participantLoginAction(studentId);
-    } catch (error) {
-      setError("studentId", {
-        message: error instanceof Error ? error.message : "로그인에 실패했어요",
-      });
+    const result = await participantLoginAction(studentId);
+    if (!result.ok) {
+      setError("studentId", { message: result.message });
       return;
     }
     adapter.create({
