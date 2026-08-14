@@ -29,7 +29,7 @@ export async function participantLoginAction(
     .eq("student_id", studentId)
     .maybeSingle();
   if (error) throw new Error(error.message);
-  if (!data) throw new Error("등록되지 않은 참가자예요");
+  if (!data) throw new Error("학번을 다시 확인해주세요");
 
   await setSessionCookie(studentId);
   return { teamId: data.team_members?.team_id ?? null };
