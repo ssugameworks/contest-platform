@@ -1,3 +1,4 @@
+import { throwIfError } from "@/shared/lib/supabase/query";
 import { createClient } from "@/shared/lib/supabase/server";
 
 // 인증이 없어 "내 팀"을 구분할 방법이 없다 — mockTeam과 동일한 한계로, seed
@@ -45,19 +46,21 @@ const TEAM_SELECT =
 
 export async function getTeamById(id: string): Promise<Team | null> {
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("teams")
     .select(TEAM_SELECT)
     .eq("id", id)
     .maybeSingle();
+  throwIfError(error);
   return data ? mapTeam(data) : null;
 }
 
 export async function listTeams(): Promise<Team[]> {
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("teams")
     .select(TEAM_SELECT)
     .order("created_at", { ascending: true });
+  throwIfError(error);
   return (data ?? []).map(mapTeam);
 }

@@ -1,4 +1,5 @@
 import dayjs, { type Dayjs } from "dayjs";
+import { throwIfError } from "@/shared/lib/supabase/query";
 import { createClient } from "@/shared/lib/supabase/server";
 
 export type ScheduleStatus = "done" | "current" | "upcoming";
@@ -29,7 +30,7 @@ export function computeScheduleStatus(
     const startsAt = dayjs(row.starts_at);
     const next = sorted[index + 1];
     const status: ScheduleStatus =
-      next && now.isAfter(dayjs(next.starts_at))
+      next && !now.isBefore(dayjs(next.starts_at))
         ? "done"
         : now.isBefore(startsAt)
           ? "upcoming"
@@ -46,9 +47,10 @@ export function computeScheduleStatus(
 
 export async function listSchedule(): Promise<ScheduleItem[]> {
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("schedule_items")
     .select("id, title, description, starts_at")
     .order("starts_at", { ascending: true });
+  throwIfError(error);
   return computeScheduleStatus(data ?? []);
 }

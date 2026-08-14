@@ -43,7 +43,7 @@ export async function unlockEvaluationAction(
   const supabase = createAdminClient();
   const { error } = await supabase
     .from("judge_evaluations")
-    .update({ submitted: false })
+    .update({ submitted: false, updated_at: new Date().toISOString() })
     .eq("judge_id", judgeId)
     .eq("team_id", teamId);
   if (error) throw new Error(error.message);

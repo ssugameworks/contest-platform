@@ -1,6 +1,5 @@
-export { listJudgesAction } from "./model/actions";
+export { findStaffByIdAction, listJudgesAction } from "./model/actions";
 export {
-  findStaffById,
   getCurrentStaff,
   listJudges,
   type Staff,

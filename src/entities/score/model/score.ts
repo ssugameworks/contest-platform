@@ -1,5 +1,6 @@
 import { getTeamInvestmentTotals } from "@/entities/investment";
 import { listTeams } from "@/entities/team";
+import { throwIfError } from "@/shared/lib/supabase/query";
 import { createClient } from "@/shared/lib/supabase/server";
 import {
   getEvaluationTotal,
@@ -38,23 +39,25 @@ export async function getEvaluation(
   teamId: string,
 ): Promise<JudgeEvaluation | undefined> {
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("judge_evaluations")
     .select("judge_id, team_id, criteria_scores, memo, submitted")
     .eq("judge_id", judgeId)
     .eq("team_id", teamId)
     .maybeSingle();
+  throwIfError(error);
   return data ? mapEvaluation(data) : undefined;
 }
 
 // 잠정 합산 방식: 제출 완료된 심사위원 평가들의 단순 평균 (추후 바뀔 수 있음)
 export async function getJudgeScore(teamId: string): Promise<number> {
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("judge_evaluations")
     .select("judge_id, team_id, criteria_scores, memo, submitted")
     .eq("team_id", teamId)
     .eq("submitted", true);
+  throwIfError(error);
   const submitted = (data ?? []).map(mapEvaluation);
   if (submitted.length === 0) return 0;
   const total = submitted.reduce(
@@ -66,11 +69,12 @@ export async function getJudgeScore(teamId: string): Promise<number> {
 
 export async function getInvestmentWeight(): Promise<number> {
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("app_settings")
     .select("investment_percent")
     .eq("id", true)
-    .single();
+    .maybeSingle();
+  throwIfError(error);
   return data?.investment_percent ?? 50;
 }
 
