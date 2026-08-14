@@ -1,6 +1,7 @@
 "use client";
 
 import { MannerTemp } from "@seed-design/react";
+import { useQuery } from "@tanstack/react-query";
 import { Fragment, useState } from "react";
 import { Avatar } from "seed-design/ui/avatar";
 import { IdentityPlaceholder } from "seed-design/ui/identity-placeholder";
@@ -9,8 +10,9 @@ import {
   SegmentedControl,
   SegmentedControlItem,
 } from "seed-design/ui/segmented-control";
-import { maskInvestorName, mockTransactions } from "@/entities/investment";
+import { maskInvestorName } from "@/entities/investment/model/pure";
 import { getSeedAvatarUrl } from "@/shared/lib/seed-avatar";
+import { getTransactionsAction } from "../model/actions";
 
 const FILTERS = [
   { value: "all", label: "전체" },
@@ -29,9 +31,13 @@ export function InvestmentTransactions({
 }) {
   const [filter, setFilter] = useState<Filter>("all");
 
-  const transactions = mockTransactions
-    .filter((tx) => tx.teamId === teamId)
-    .filter((tx) => filter === "all" || tx.type === filter);
+  const { data: allTransactions = [] } = useQuery({
+    queryKey: ["transactions", teamId],
+    queryFn: () => getTransactionsAction(teamId),
+  });
+  const transactions = allTransactions.filter(
+    (tx) => filter === "all" || tx.type === filter,
+  );
 
   return (
     <div className="flex w-full flex-col gap-4">

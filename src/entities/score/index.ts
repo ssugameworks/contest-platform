@@ -1,15 +1,16 @@
 export {
+  getInvestmentWeightAction,
+  getScoreLeaderboardAction,
+  setInvestmentWeightAction,
+} from "./model/actions";
+export {
   getEvaluation,
   getEvaluationTotal,
   getFinalScore,
   getInvestmentScore,
+  getInvestmentWeight,
   getJudgeScore,
   getScoreLeaderboard,
   type JudgeEvaluation,
-  mockJudgeEvaluations,
-  resetScores,
   type ScoreLeaderboardEntry,
-  scoreWeights,
-  setInvestmentWeight,
-  upsertEvaluation,
 } from "./model/score";

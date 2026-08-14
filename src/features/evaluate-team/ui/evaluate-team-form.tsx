@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { HStack, Text, VStack } from "@seed-design/react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { forwardRef, useEffect, useImperativeHandle } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import {
@@ -10,12 +11,9 @@ import {
   TextFieldTextarea,
 } from "seed-design/ui/text-field";
 import { rubricCriteria, rubricMaxTotal } from "@/entities/rubric";
-import {
-  getEvaluation,
-  getEvaluationTotal,
-  upsertEvaluation,
-} from "@/entities/score";
+import { getEvaluationTotal } from "@/entities/score/model/pure";
 import type { Team } from "@/entities/team";
+import { getEvaluationAction, submitEvaluationAction } from "../model/actions";
 import { type EvaluateTeamInput, evaluateTeamSchema } from "../model/schema";
 
 export interface EvaluateTeamFormHandle {
@@ -32,11 +30,16 @@ export const EvaluateTeamForm = forwardRef<
     onTotalChange?: (total: number) => void;
   }
 >(function EvaluateTeamForm({ judgeId, team, onSaved, onTotalChange }, ref) {
-  const evaluation = getEvaluation(judgeId, team.id);
+  const queryClient = useQueryClient();
+  const queryKey = ["evaluation", judgeId, team.id];
+  const { data: evaluation, isPending } = useQuery({
+    queryKey,
+    queryFn: () => getEvaluationAction(judgeId, team.id),
+  });
 
   const { control, register, handleSubmit } = useForm<EvaluateTeamInput>({
     resolver: zodResolver(evaluateTeamSchema),
-    defaultValues: {
+    values: {
       criteriaScores: Object.fromEntries(
         rubricCriteria.map((criterion) => [
           criterion.id,
@@ -62,12 +65,13 @@ export const EvaluateTeamForm = forwardRef<
   }, [total, onTotalChange]);
 
   const save = (submitted: boolean) =>
-    handleSubmit((data) => {
-      upsertEvaluation(judgeId, team.id, {
+    handleSubmit(async (data) => {
+      await submitEvaluationAction(judgeId, team.id, {
         criteriaScores: data.criteriaScores,
         memo: data.memo ?? "",
         submitted,
       });
+      await queryClient.invalidateQueries({ queryKey });
       onSaved();
     })();
 
@@ -75,6 +79,10 @@ export const EvaluateTeamForm = forwardRef<
     saveDraft: () => save(false),
     submitFinal: () => save(true),
   }));
+
+  if (isPending) {
+    return null;
+  }
 
   if (evaluation?.submitted) {
     return (

@@ -1,5 +1,5 @@
 export {
-  mockSchedule,
+  listSchedule,
   type ScheduleItem,
   type ScheduleStatus,
 } from "./model/schedule";

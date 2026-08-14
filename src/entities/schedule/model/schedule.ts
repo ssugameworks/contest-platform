@@ -1,3 +1,6 @@
+import dayjs, { type Dayjs } from "dayjs";
+import { createClient } from "@/shared/lib/supabase/server";
+
 export type ScheduleStatus = "done" | "current" | "upcoming";
 
 export interface ScheduleItem {
@@ -8,26 +11,44 @@ export interface ScheduleItem {
   status: ScheduleStatus;
 }
 
-export const mockSchedule: ScheduleItem[] = [
-  { id: "schedule-1", time: "13:00", title: "부스 오픈", status: "done" },
-  {
-    id: "schedule-2",
-    time: "14:00",
-    title: "심사위원 부스 심사",
-    status: "done",
-  },
-  {
-    id: "schedule-3",
-    time: "15:30",
-    title: "투자 라운드",
-    description: "가상 투자금 10만원으로 마음에 드는 팀에 투자해보세요",
-    status: "current",
-  },
-  { id: "schedule-4", time: "17:00", title: "투자 마감", status: "upcoming" },
-  {
-    id: "schedule-5",
-    time: "17:30",
-    title: "결과 발표 및 시상식",
-    status: "upcoming",
-  },
-];
+interface ScheduleRow {
+  id: string;
+  title: string;
+  description: string | null;
+  starts_at: string;
+}
+
+export function computeScheduleStatus(
+  rows: ScheduleRow[],
+  now: Dayjs = dayjs(),
+): ScheduleItem[] {
+  const sorted = [...rows].sort(
+    (a, b) => dayjs(a.starts_at).valueOf() - dayjs(b.starts_at).valueOf(),
+  );
+  return sorted.map((row, index) => {
+    const startsAt = dayjs(row.starts_at);
+    const next = sorted[index + 1];
+    const status: ScheduleStatus =
+      next && now.isAfter(dayjs(next.starts_at))
+        ? "done"
+        : now.isBefore(startsAt)
+          ? "upcoming"
+          : "current";
+    return {
+      id: row.id,
+      time: startsAt.format("HH:mm"),
+      title: row.title,
+      description: row.description ?? undefined,
+      status,
+    };
+  });
+}
+
+export async function listSchedule(): Promise<ScheduleItem[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("schedule_items")
+    .select("id, title, description, starts_at")
+    .order("starts_at", { ascending: true });
+  return computeScheduleStatus(data ?? []);
+}

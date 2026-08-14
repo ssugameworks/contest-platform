@@ -1,27 +1,19 @@
-export type StaffRole = "admin" | "judge";
+import { createClient } from "@/shared/lib/supabase/server";
+import type { Staff, StaffRole } from "./pure";
 
-export interface Staff {
-  id: string;
-  name: string;
-  role: StaffRole;
-}
+export type { Staff, StaffRole } from "./pure";
+export { getCurrentStaff, setCurrentStaff } from "./pure";
+export { findStaffById } from "./staff-client";
 
-export const mockStaff: Staff[] = [
-  { id: "admin", name: "운영진", role: "admin" },
-  { id: "judge1", name: "심사위원 1", role: "judge" },
-  { id: "judge2", name: "심사위원 2", role: "judge" },
-];
-
-export function findStaffById(id: string): Staff | undefined {
-  return mockStaff.find((staff) => staff.id === id);
-}
-
-let currentStaff: Staff | null = null;
-
-export function setCurrentStaff(staff: Staff | null): void {
-  currentStaff = staff;
-}
-
-export function getCurrentStaff(): Staff | null {
-  return currentStaff;
+export async function listJudges(): Promise<Staff[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("staff")
+    .select("id, name, role")
+    .eq("role", "judge");
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    name: row.name,
+    role: row.role as StaffRole,
+  }));
 }

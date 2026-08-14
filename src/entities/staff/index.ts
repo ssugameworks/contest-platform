@@ -1,7 +1,8 @@
+export { listJudgesAction } from "./model/actions";
 export {
   findStaffById,
   getCurrentStaff,
-  mockStaff,
+  listJudges,
   type Staff,
   type StaffRole,
   setCurrentStaff,

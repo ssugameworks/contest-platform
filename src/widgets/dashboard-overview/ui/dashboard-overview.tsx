@@ -2,16 +2,16 @@ import { Box, Divider, Grid, HStack, Text, VStack } from "@seed-design/react";
 import { Avatar, AvatarStack } from "seed-design/ui/avatar";
 import { IdentityPlaceholder } from "seed-design/ui/identity-placeholder";
 import { List, ListItem } from "seed-design/ui/list";
-import { formatBoothLocation, mockBooth } from "@/entities/booth";
+import { formatBoothLocation, getBoothByTeamId } from "@/entities/booth";
 import {
   getInvestmentRank,
   getInvestorCount,
-  mockInvestment,
+  getTeamInvestmentTotal,
 } from "@/entities/investment";
-import { mockParticipants } from "@/entities/participant";
+import { listParticipants } from "@/entities/participant";
 import type { ScheduleStatus } from "@/entities/schedule";
-import { mockSchedule } from "@/entities/schedule";
-import { mockTeam } from "@/entities/team";
+import { listSchedule } from "@/entities/schedule";
+import { getTeamById, PLACEHOLDER_TEAM_ID } from "@/entities/team";
 import { PageHeader } from "@/shared/ui/page-header";
 import { StatCard } from "@/shared/ui/stat-card";
 
@@ -78,16 +78,26 @@ function TimelineNode({
   );
 }
 
-export function DashboardOverview() {
-  const { rank } = getInvestmentRank(mockTeam.id);
-  const investorCount = getInvestorCount(mockTeam.id);
-  const members = mockTeam.memberIds
-    .map((id) => mockParticipants.find((p) => p.studentId === id))
+export async function DashboardOverview() {
+  const team = await getTeamById(PLACEHOLDER_TEAM_ID);
+  if (!team) return null;
+
+  const [{ rank }, investorCount, amount, participants, schedule] =
+    await Promise.all([
+      getInvestmentRank(team.id),
+      getInvestorCount(team.id),
+      getTeamInvestmentTotal(team.id),
+      listParticipants(),
+      listSchedule(),
+    ]);
+  const booth = await getBoothByTeamId(team.id);
+  const members = team.memberIds
+    .map((id) => participants.find((p) => p.studentId === id))
     .filter((p) => p !== undefined);
 
   return (
     <VStack gap="x6" width="full" px="spacingX.globalGutter" py="x6">
-      <PageHeader title={mockTeam.name} description={mockTeam.description} />
+      <PageHeader title={team.name} description={team.description} />
 
       <AvatarStack size="36">
         {members.map((member) => (
@@ -98,13 +108,13 @@ export function DashboardOverview() {
       <Divider />
 
       <Grid columns={{ base: 1, sm: 2, lg: 4 }} gap="x4" width="full">
-        <StatCard
-          label="받은 투자금"
-          value={`${mockInvestment.amount.toLocaleString()}원`}
-        />
+        <StatCard label="받은 투자금" value={`${amount.toLocaleString()}원`} />
         <StatCard label="투자자 수" value={`${investorCount}명`} />
         <StatCard label="투자 등수" value={`${rank}위`} />
-        <StatCard label="부스 위치" value={formatBoothLocation(mockBooth)} />
+        <StatCard
+          label="부스 위치"
+          value={booth ? formatBoothLocation(booth) : "-"}
+        />
       </Grid>
 
       <Divider />
@@ -113,7 +123,7 @@ export function DashboardOverview() {
         <Text textStyle="t5Bold">데모데이 타임테이블</Text>
 
         <List width="full">
-          {mockSchedule.map((item, index) => (
+          {schedule.map((item, index) => (
             <ListItem
               key={item.id}
               alignItems="stretch"
@@ -139,7 +149,7 @@ export function DashboardOverview() {
                   <TimelineNode
                     status={item.status}
                     showTopLine={index > 0}
-                    showBottomLine={index < mockSchedule.length - 1}
+                    showBottomLine={index < schedule.length - 1}
                   />
                 </HStack>
               }

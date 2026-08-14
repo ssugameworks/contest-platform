@@ -7,7 +7,8 @@ import { useForm } from "react-hook-form";
 import { ActionButton } from "seed-design/ui/action-button";
 import { Snackbar, useSnackbarAdapter } from "seed-design/ui/snackbar";
 import { TextField, TextFieldInput } from "seed-design/ui/text-field";
-import { findStaffById, setCurrentStaff } from "@/entities/staff";
+import { setCurrentStaff } from "@/entities/staff/model/pure";
+import { findStaffById } from "@/entities/staff/model/staff-client";
 import { type AdminLoginInput, adminLoginSchema } from "../model/schema";
 
 export function AdminLoginForm() {
@@ -20,8 +21,8 @@ export function AdminLoginForm() {
     formState: { errors, isSubmitting },
   } = useForm<AdminLoginInput>({ resolver: zodResolver(adminLoginSchema) });
 
-  const onSubmit = handleSubmit(({ id }) => {
-    const staff = findStaffById(id);
+  const onSubmit = handleSubmit(async ({ id }) => {
+    const staff = await findStaffById(id);
     if (!staff) {
       setError("id", { message: "등록되지 않은 아이디예요" });
       return;

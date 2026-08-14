@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconArrowRightLine } from "@karrotmarket/react-monochrome-icon";
 import { Box, HStack, Icon, Text, VStack } from "@seed-design/react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { ActionButton } from "seed-design/ui/action-button";
@@ -15,8 +16,7 @@ import {
 } from "seed-design/ui/bottom-sheet";
 import { Snackbar, useSnackbarAdapter } from "seed-design/ui/snackbar";
 import { TextField, TextFieldInput } from "seed-design/ui/text-field";
-import { mockCurrentInvestor } from "@/entities/investor";
-import { mockTeam } from "@/entities/team";
+import { getTradeContextAction, placeTradeAction } from "../model/actions";
 import {
   createTradeAmountSchema,
   type TradeAmountInput,
@@ -26,14 +26,25 @@ const PRESET_UNITS = [10_000, 30_000, 50_000] as const;
 
 type TradeType = "buy" | "sell";
 
-export function InvestButton() {
+export function InvestButton({
+  teamId,
+  teamName,
+}: {
+  teamId: string;
+  teamName: string;
+}) {
   const adapter = useSnackbarAdapter();
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [tradeType, setTradeType] = useState<TradeType>("buy");
-  const [remainingBudget, setRemainingBudget] = useState(
-    mockCurrentInvestor.totalBudget,
-  );
-  const [myHolding, setMyHolding] = useState(0);
+
+  const queryKey = ["trade-context", teamId];
+  const { data: context } = useQuery({
+    queryKey,
+    queryFn: () => getTradeContextAction(teamId),
+  });
+  const remainingBudget = context?.remainingBudget ?? 0;
+  const myHolding = context?.holding ?? 0;
 
   const maxAmount = tradeType === "buy" ? remainingBudget : myHolding;
   const schema = useMemo(
@@ -46,6 +57,7 @@ export function InvestButton() {
     handleSubmit,
     setValue,
     reset,
+    setError,
     formState: { errors },
   } = useForm<TradeAmountInput>({
     resolver: zodResolver(schema),
@@ -54,25 +66,30 @@ export function InvestButton() {
 
   const watchedAmount = useWatch({ control, name: "amount" });
 
-  const onSubmit = handleSubmit(({ amount }) => {
-    if (tradeType === "buy") {
-      setRemainingBudget((b) => b - amount);
-      setMyHolding((h) => h + amount);
-    } else {
-      setRemainingBudget((b) => b + amount);
-      setMyHolding((h) => h - amount);
-    }
-    adapter.create({
-      onClose: () => {},
-      render: () => (
-        <Snackbar
-          message={`${amount.toLocaleString()}원 ${tradeType === "buy" ? "투자" : "매도"}했어요`}
-        />
-      ),
-    });
-    reset({ amount: 0 });
-    setOpen(false);
+  const tradeMutation = useMutation({
+    mutationFn: ({ amount }: TradeAmountInput) => {
+      if (!context) throw new Error("투자자 정보를 불러오지 못했어요");
+      return placeTradeAction(context.investorId, teamId, tradeType, amount);
+    },
+    onSuccess: (_, { amount }) => {
+      queryClient.invalidateQueries({ queryKey });
+      adapter.create({
+        onClose: () => {},
+        render: () => (
+          <Snackbar
+            message={`${amount.toLocaleString()}원 ${tradeType === "buy" ? "투자" : "매도"}했어요`}
+          />
+        ),
+      });
+      reset({ amount: 0 });
+      setOpen(false);
+    },
+    onError: (error) => {
+      setError("amount", { message: error.message });
+    },
   });
+
+  const onSubmit = handleSubmit((data) => tradeMutation.mutate(data));
 
   const openTrade = (type: TradeType) => {
     setTradeType(type);
@@ -122,16 +139,16 @@ export function InvestButton() {
                   <Box display="flex" justifyContent="center">
                     <Text textStyle="t6Bold" color="fg.neutral">
                       {tradeType === "buy"
-                        ? mockCurrentInvestor.name
-                        : mockTeam.name}
+                        ? (context?.investorName ?? "나")
+                        : teamName}
                     </Text>
                   </Box>
                   <Icon svg={<IconArrowRightLine />} />
                   <Box display="flex" justifyContent="center">
                     <Text textStyle="t6Bold" color="fg.neutral">
                       {tradeType === "buy"
-                        ? mockTeam.name
-                        : mockCurrentInvestor.name}
+                        ? teamName
+                        : (context?.investorName ?? "나")}
                     </Text>
                   </Box>
                 </Box>
@@ -149,7 +166,7 @@ export function InvestButton() {
                 >
                   {watchedAmount > 0
                     ? `${watchedAmount.toLocaleString()}원`
-                    : " "}
+                    : " "}
                 </Text>
               </VStack>
 
@@ -218,6 +235,7 @@ export function InvestButton() {
             form="trade-form"
             variant={tradeType === "buy" ? "brandSolid" : "criticalSolid"}
             className="w-full"
+            loading={tradeMutation.isPending}
           >
             {tradeType === "buy" ? "매수 확정" : "매도 확정"}
           </ActionButton>

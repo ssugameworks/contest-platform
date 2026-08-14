@@ -1,7 +1,7 @@
+export { getBoothByTeamIdAction } from "./model/actions";
 export {
   type Booth,
   formatBoothLocation,
   getBoothByTeamId,
-  mockBooth,
-  mockBooths,
+  listBooths,
 } from "./model/booth";

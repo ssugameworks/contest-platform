@@ -17,26 +17,30 @@ import { ActionButton } from "seed-design/ui/action-button";
 import { Avatar, AvatarStack } from "seed-design/ui/avatar";
 import { IdentityPlaceholder } from "seed-design/ui/identity-placeholder";
 import { Snackbar, useSnackbarAdapter } from "seed-design/ui/snackbar";
-import { formatBoothLocation, mockBooth } from "@/entities/booth";
-import {
-  getInvestmentRank,
-  getInvestorCount,
-  mockInvestment,
-} from "@/entities/investment";
-import { mockParticipants } from "@/entities/participant";
+import { type Booth, formatBoothLocation } from "@/entities/booth/model/pure";
+import type { Participant } from "@/entities/participant";
 import type { Team } from "@/entities/team";
 import { InvestButton } from "@/features/invest-in-team";
 import { PageHeader } from "@/shared/ui/page-header";
 import { StatCard } from "@/shared/ui/stat-card";
 import { InvestmentTransactions } from "@/widgets/investment-transactions";
 
-export function TeamShowcase({ team }: { team: Team }) {
+export function TeamShowcase({
+  team,
+  booth,
+  rank,
+  investorCount,
+  amount,
+  members,
+}: {
+  team: Team;
+  booth: Booth | null;
+  rank: number;
+  investorCount: number;
+  amount: number;
+  members: Participant[];
+}) {
   const adapter = useSnackbarAdapter();
-  const { rank } = getInvestmentRank(team.id);
-  const investorCount = getInvestorCount(team.id);
-  const members = team.memberIds
-    .map((id) => mockParticipants.find((p) => p.studentId === id))
-    .filter((p) => p !== undefined);
 
   const shareStub = () => {
     adapter.create({
@@ -93,15 +97,12 @@ export function TeamShowcase({ team }: { team: Team }) {
 
             {/* 통계 */}
             <Grid columns={{ base: 1, sm: 2, lg: 4 }} gap="x4" width="full">
-              <StatCard
-                label="모금액"
-                value={`${mockInvestment.amount.toLocaleString()}원`}
-              />
+              <StatCard label="모금액" value={`${amount.toLocaleString()}원`} />
               <StatCard label="투자자 수" value={`${investorCount}명`} />
               <StatCard label="투자 등수" value={`${rank}위`} />
               <StatCard
                 label="부스 위치"
-                value={formatBoothLocation(mockBooth)}
+                value={booth ? formatBoothLocation(booth) : "-"}
               />
             </Grid>
 
@@ -193,7 +194,7 @@ export function TeamShowcase({ team }: { team: Team }) {
         style={{ paddingBottom: "calc(var(--seed-safe-area-bottom) + 16px)" }}
       >
         <Box width="full" style={{ maxWidth: "720px", marginInline: "auto" }}>
-          <InvestButton />
+          <InvestButton teamId={team.id} teamName={team.name} />
         </Box>
       </Box>
     </Box>

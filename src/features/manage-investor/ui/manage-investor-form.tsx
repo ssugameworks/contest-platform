@@ -2,13 +2,11 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { VStack } from "@seed-design/react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Controller, useForm } from "react-hook-form";
 import { TextField, TextFieldInput } from "seed-design/ui/text-field";
-import {
-  addInvestor,
-  type Investor,
-  updateInvestor,
-} from "@/entities/investor";
+import type { Investor } from "@/entities/investor";
+import { createInvestorAction, updateInvestorAction } from "../model/actions";
 import {
   type ManageInvestorInput,
   manageInvestorSchema,
@@ -21,6 +19,7 @@ export function ManageInvestorForm({
   investor?: Investor;
   onSaved: () => void;
 }) {
+  const queryClient = useQueryClient();
   const {
     register,
     control,
@@ -35,12 +34,13 @@ export function ManageInvestorForm({
     },
   });
 
-  const onSubmit = handleSubmit((data) => {
+  const onSubmit = handleSubmit(async (data) => {
     if (investor) {
-      updateInvestor(investor.id, data);
+      await updateInvestorAction(investor.id, data);
     } else {
-      addInvestor({ id: `investor-${Date.now()}`, ...data });
+      await createInvestorAction(data);
     }
+    await queryClient.invalidateQueries({ queryKey: ["admin-investors"] });
     onSaved();
   });
 
