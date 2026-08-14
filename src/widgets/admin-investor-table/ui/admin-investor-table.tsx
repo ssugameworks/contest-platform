@@ -10,6 +10,7 @@ import {
   SidePanelFooter,
   SidePanelRoot,
 } from "seed-design/ui/side-panel";
+import { Snackbar, useSnackbarAdapter } from "seed-design/ui/snackbar";
 import { TextField, TextFieldInput } from "seed-design/ui/text-field";
 import type { Investor } from "@/entities/investor";
 import { ManageInvestorForm } from "@/features/manage-investor";
@@ -30,6 +31,7 @@ const QUERY_KEY = ["admin-investors"];
 
 export function AdminInvestorTable() {
   const queryClient = useQueryClient();
+  const adapter = useSnackbarAdapter();
   const [query, setQuery] = useState("");
   const [sortDesc, setSortDesc] = useState(true);
   const [open, setOpen] = useState(false);
@@ -47,6 +49,12 @@ export function AdminInvestorTable() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY });
       setOpen(false);
+    },
+    onError: (error) => {
+      adapter.create({
+        onClose: () => {},
+        render: () => <Snackbar message={error.message} />,
+      });
     },
   });
 

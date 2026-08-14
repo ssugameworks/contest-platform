@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { VStack } from "@seed-design/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Controller, useForm } from "react-hook-form";
+import { Snackbar, useSnackbarAdapter } from "seed-design/ui/snackbar";
 import { TextField, TextFieldInput } from "seed-design/ui/text-field";
 import type { Investor } from "@/entities/investor";
 import { createInvestorAction, updateInvestorAction } from "../model/actions";
@@ -20,6 +21,7 @@ export function ManageInvestorForm({
   onSaved: () => void;
 }) {
   const queryClient = useQueryClient();
+  const adapter = useSnackbarAdapter();
   const {
     register,
     control,
@@ -35,10 +37,24 @@ export function ManageInvestorForm({
   });
 
   const onSubmit = handleSubmit(async (data) => {
-    if (investor) {
-      await updateInvestorAction(investor.id, data);
-    } else {
-      await createInvestorAction(data);
+    try {
+      if (investor) {
+        await updateInvestorAction(investor.id, data);
+      } else {
+        await createInvestorAction(data);
+      }
+    } catch (error) {
+      adapter.create({
+        onClose: () => {},
+        render: () => (
+          <Snackbar
+            message={
+              error instanceof Error ? error.message : "저장에 실패했어요"
+            }
+          />
+        ),
+      });
+      return;
     }
     await queryClient.invalidateQueries({ queryKey: ["admin-investors"] });
     onSaved();

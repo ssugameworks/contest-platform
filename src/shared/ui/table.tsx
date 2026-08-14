@@ -95,12 +95,15 @@ export function TableHeadCell({
 export function TableCell({
   children,
   align = "left",
+  colSpan,
 }: {
   children: ReactNode;
   align?: "left" | "right" | "center";
+  colSpan?: number;
 }) {
   return (
     <td
+      colSpan={colSpan}
       style={{
         padding: "var(--seed-dimension-x4) var(--seed-dimension-x5)",
         textAlign: align,

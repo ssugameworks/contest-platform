@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { IconArrowRightLine } from "@karrotmarket/react-monochrome-icon";
 import { Box, HStack, Icon, Text, VStack } from "@seed-design/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { ActionButton } from "seed-design/ui/action-button";
@@ -35,16 +36,22 @@ export function InvestButton({
 }) {
   const adapter = useSnackbarAdapter();
   const queryClient = useQueryClient();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [tradeType, setTradeType] = useState<TradeType>("buy");
 
   const queryKey = ["trade-context", teamId];
-  const { data: context } = useQuery({
+  const {
+    data: context,
+    isPending: isContextPending,
+    isError: isContextError,
+  } = useQuery({
     queryKey,
     queryFn: () => getTradeContextAction(teamId),
   });
   const remainingBudget = context?.remainingBudget ?? 0;
   const myHolding = context?.holding ?? 0;
+  const contextUnavailable = isContextPending || isContextError;
 
   const maxAmount = tradeType === "buy" ? remainingBudget : myHolding;
   const schema = useMemo(
@@ -73,6 +80,10 @@ export function InvestButton({
     },
     onSuccess: (_, { amount }) => {
       queryClient.invalidateQueries({ queryKey });
+      queryClient.invalidateQueries({ queryKey: ["transactions", teamId] });
+      // amount/rank/investorCount on the team page are server-rendered
+      // props, not react-query — refresh the route to pick up new totals.
+      router.refresh();
       adapter.create({
         onClose: () => {},
         render: () => (
@@ -104,12 +115,13 @@ export function InvestButton({
             variant="brandSolid"
             size="large"
             className="w-full"
+            disabled={contextUnavailable}
             onClick={() => openTrade("buy")}
           >
-            매수
+            {isContextError ? "투자 정보를 불러오지 못했어요" : "매수"}
           </ActionButton>
         </BottomSheetTrigger>
-        {myHolding > 0 && (
+        {!contextUnavailable && myHolding > 0 && (
           <BottomSheetTrigger asChild>
             <ActionButton
               variant="neutralWeak"
