@@ -26,9 +26,8 @@ export function ParticipantLoginForm() {
   });
 
   const onSubmit = handleSubmit(async ({ studentId }) => {
-    let teamId: string | null;
     try {
-      ({ teamId } = await participantLoginAction(studentId));
+      await participantLoginAction(studentId);
     } catch (error) {
       setError("studentId", {
         message: error instanceof Error ? error.message : "로그인에 실패했어요",
@@ -39,7 +38,7 @@ export function ParticipantLoginForm() {
       onClose: () => {},
       render: () => <Snackbar message="참가자로 로그인했어요" />,
     });
-    router.push(teamId ? `/teams/${teamId}` : "/");
+    router.push("/participant/dashboard");
   });
 
   return (
