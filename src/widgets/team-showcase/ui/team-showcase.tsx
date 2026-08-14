@@ -85,7 +85,8 @@ export function TeamShowcase({
       >
         공유
       </ActionButton>
-      <ActionButton variant="neutralWeak" size="large" flexGrow={3} asChild>
+
+      <ActionButton variant="brandSolid" size="large" flexGrow={3} asChild>
         <Link href="/participant/dashboard">대시보드</Link>
       </ActionButton>
     </HStack>
