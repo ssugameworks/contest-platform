@@ -56,7 +56,6 @@ export function EditTeamProfileForm({ team }: { team: Team }) {
       landingPageUrl: data.landingPageUrl || null,
       tags,
       screenshotUrls,
-      memberIds: team.memberIds,
     });
 
     adapter.create({

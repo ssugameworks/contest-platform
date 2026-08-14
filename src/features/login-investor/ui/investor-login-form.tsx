@@ -22,13 +22,15 @@ export function InvestorLoginForm() {
     resolver: zodResolver(investorLoginSchema),
   });
 
-  const onSubmit = handleSubmit(async ({ studentId, name }) => {
-    try {
-      await investorLoginOrSignupAction(studentId, name ?? "");
-    } catch (error) {
-      setError("studentId", {
-        message: error instanceof Error ? error.message : "가입에 실패했어요",
-      });
+  const onSubmit = handleSubmit(async ({ studentId, name, password }) => {
+    const result = await investorLoginOrSignupAction(
+      studentId,
+      name ?? "",
+      password,
+    );
+    if (!result.ok) {
+      const field = result.message.includes("이름") ? "name" : "studentId";
+      setError(field, { message: result.message });
       return;
     }
     adapter.create({
@@ -56,8 +58,22 @@ export function InvestorLoginForm() {
         <TextField
           label="이름"
           description="처음 가입하는 경우에만 입력해주세요"
+          invalid={!!errors.name}
+          errorMessage={errors.name?.message}
         >
           <TextFieldInput placeholder="홍길동" {...register("name")} />
+        </TextField>
+        <TextField
+          label="비밀번호"
+          description="처음 가입 시 입력한 비밀번호로 계속 로그인해요"
+          invalid={!!errors.password}
+          errorMessage={errors.password?.message}
+        >
+          <TextFieldInput
+            type="password"
+            placeholder="********"
+            {...register("password")}
+          />
         </TextField>
         <ActionButton
           type="submit"
