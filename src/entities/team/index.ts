@@ -1,10 +1,7 @@
+export { getTeamByIdAction, listTeamsAction } from "./model/actions";
 export {
-  addTeam,
-  deleteTeam,
   getTeamById,
-  mockTeam,
-  mockTeams,
-  resetTeams,
+  listTeams,
+  PLACEHOLDER_TEAM_ID,
   type Team,
-  updateTeam,
 } from "./model/team";

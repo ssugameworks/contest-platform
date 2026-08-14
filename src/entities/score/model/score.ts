@@ -1,92 +1,61 @@
-import { mockLeaderboard } from "@/entities/investment";
-import { rubricCriteria, rubricMaxTotal } from "@/entities/rubric";
-import { mockTeams } from "@/entities/team";
+import { getTeamInvestmentTotals } from "@/entities/investment";
+import { listTeams } from "@/entities/team";
+import { createClient } from "@/shared/lib/supabase/server";
+import {
+  getEvaluationTotal,
+  type JudgeEvaluation,
+  type ScoreLeaderboardEntry,
+} from "./pure";
 
-export interface JudgeEvaluation {
-  judgeId: string;
-  teamId: string;
-  criteriaScores: Record<string, number>;
+export type { JudgeEvaluation, ScoreLeaderboardEntry } from "./pure";
+export { getEvaluationTotal } from "./pure";
+
+function mapEvaluation(row: {
+  judge_id: string;
+  team_id: string;
+  criteria_scores: unknown;
   memo: string;
   submitted: boolean;
+}): JudgeEvaluation {
+  return {
+    judgeId: row.judge_id,
+    teamId: row.team_id,
+    criteriaScores: (row.criteria_scores as Record<string, number>) ?? {},
+    memo: row.memo,
+    submitted: row.submitted,
+  };
 }
 
-export const mockJudgeEvaluations: JudgeEvaluation[] = [
-  {
-    judgeId: "judge1",
-    teamId: "team-1",
-    criteriaScores: { problem: 8, tech: 7, feasibility: 8, presentation: 9 },
-    memo: "발표가 인상적이었어요. 기술 구현 디테일을 더 보고 싶어요.",
-    submitted: true,
-  },
-  {
-    judgeId: "judge2",
-    teamId: "team-1",
-    criteriaScores: { problem: 9, tech: 8, feasibility: 7, presentation: 8 },
-    memo: "문제 정의가 명확함.",
-    submitted: true,
-  },
-];
-
-const INITIAL_JUDGE_EVALUATIONS: JudgeEvaluation[] =
-  structuredClone(mockJudgeEvaluations);
-
-export const scoreWeights = { investmentPercent: 50 };
-
-const INITIAL_INVESTMENT_PERCENT = scoreWeights.investmentPercent;
-
-export function getInvestmentScore(teamId: string): number {
-  const max = Math.max(...mockLeaderboard.map((entry) => entry.amount));
-  const amount =
-    mockLeaderboard.find((entry) => entry.teamId === teamId)?.amount ?? 0;
+export async function getInvestmentScore(teamId: string): Promise<number> {
+  const totals = await getTeamInvestmentTotals();
+  const max = Math.max(0, ...totals.map((entry) => entry.amount));
+  const amount = totals.find((entry) => entry.teamId === teamId)?.amount ?? 0;
   return max > 0 ? Math.round((amount / max) * 100) : 0;
 }
 
-export function getEvaluation(
+export async function getEvaluation(
   judgeId: string,
   teamId: string,
-): JudgeEvaluation | undefined {
-  return mockJudgeEvaluations.find(
-    (evaluation) =>
-      evaluation.judgeId === judgeId && evaluation.teamId === teamId,
-  );
-}
-
-export function upsertEvaluation(
-  judgeId: string,
-  teamId: string,
-  patch: Partial<Omit<JudgeEvaluation, "judgeId" | "teamId">>,
-): void {
-  const existing = getEvaluation(judgeId, teamId);
-  if (existing) {
-    Object.assign(existing, patch);
-  } else {
-    mockJudgeEvaluations.push({
-      judgeId,
-      teamId,
-      criteriaScores: {},
-      memo: "",
-      submitted: false,
-      ...patch,
-    });
-  }
-}
-
-export function getEvaluationTotal(
-  evaluation: JudgeEvaluation | undefined,
-): number {
-  if (!evaluation) return 0;
-  const raw = rubricCriteria.reduce(
-    (sum, criterion) => sum + (evaluation.criteriaScores[criterion.id] ?? 0),
-    0,
-  );
-  return rubricMaxTotal > 0 ? Math.round((raw / rubricMaxTotal) * 100) : 0;
+): Promise<JudgeEvaluation | undefined> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("judge_evaluations")
+    .select("judge_id, team_id, criteria_scores, memo, submitted")
+    .eq("judge_id", judgeId)
+    .eq("team_id", teamId)
+    .maybeSingle();
+  return data ? mapEvaluation(data) : undefined;
 }
 
 // 잠정 합산 방식: 제출 완료된 심사위원 평가들의 단순 평균 (추후 바뀔 수 있음)
-export function getJudgeScore(teamId: string): number {
-  const submitted = mockJudgeEvaluations.filter(
-    (evaluation) => evaluation.teamId === teamId && evaluation.submitted,
-  );
+export async function getJudgeScore(teamId: string): Promise<number> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("judge_evaluations")
+    .select("judge_id, team_id, criteria_scores, memo, submitted")
+    .eq("team_id", teamId)
+    .eq("submitted", true);
+  const submitted = (data ?? []).map(mapEvaluation);
   if (submitted.length === 0) return 0;
   const total = submitted.reduce(
     (sum, evaluation) => sum + getEvaluationTotal(evaluation),
@@ -95,39 +64,40 @@ export function getJudgeScore(teamId: string): number {
   return Math.round(total / submitted.length);
 }
 
-export function setInvestmentWeight(investmentPercent: number): void {
-  scoreWeights.investmentPercent = investmentPercent;
+export async function getInvestmentWeight(): Promise<number> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("app_settings")
+    .select("investment_percent")
+    .eq("id", true)
+    .single();
+  return data?.investment_percent ?? 50;
 }
 
-export function getFinalScore(teamId: string): number {
-  const investmentWeight = scoreWeights.investmentPercent / 100;
+export async function getFinalScore(teamId: string): Promise<number> {
+  const [investmentScore, judgeScore, investmentPercent] = await Promise.all([
+    getInvestmentScore(teamId),
+    getJudgeScore(teamId),
+    getInvestmentWeight(),
+  ]);
+  const investmentWeight = investmentPercent / 100;
   const judgeWeight = 1 - investmentWeight;
   return Math.round(
-    getInvestmentScore(teamId) * investmentWeight +
-      getJudgeScore(teamId) * judgeWeight,
+    investmentScore * investmentWeight + judgeScore * judgeWeight,
   );
 }
 
-export interface ScoreLeaderboardEntry {
-  teamId: string;
-  investmentScore: number;
-  judgeScore: number;
-  finalScore: number;
-}
-
-export function getScoreLeaderboard(): ScoreLeaderboardEntry[] {
-  return mockTeams
-    .map((team) => ({
-      teamId: team.id,
-      investmentScore: getInvestmentScore(team.id),
-      judgeScore: getJudgeScore(team.id),
-      finalScore: getFinalScore(team.id),
-    }))
-    .sort((a, b) => b.finalScore - a.finalScore);
-}
-
-export function resetScores(): void {
-  mockJudgeEvaluations.length = 0;
-  mockJudgeEvaluations.push(...structuredClone(INITIAL_JUDGE_EVALUATIONS));
-  scoreWeights.investmentPercent = INITIAL_INVESTMENT_PERCENT;
+export async function getScoreLeaderboard(): Promise<ScoreLeaderboardEntry[]> {
+  const teams = await listTeams();
+  const entries = await Promise.all(
+    teams.map(async (team) => {
+      const [investmentScore, judgeScore, finalScore] = await Promise.all([
+        getInvestmentScore(team.id),
+        getJudgeScore(team.id),
+        getFinalScore(team.id),
+      ]);
+      return { teamId: team.id, investmentScore, judgeScore, finalScore };
+    }),
+  );
+  return entries.sort((a, b) => b.finalScore - a.finalScore);
 }

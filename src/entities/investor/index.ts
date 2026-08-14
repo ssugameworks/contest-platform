@@ -1,10 +1,7 @@
 export {
-  addInvestor,
-  deleteInvestor,
+  getCurrentInvestor,
+  getInvestorBudget,
   getInvestorById,
   type Investor,
-  mockCurrentInvestor,
-  mockInvestors,
-  resetInvestors,
-  updateInvestor,
+  listInvestors,
 } from "./model/investor";

@@ -1,6 +1,7 @@
 "use client";
 
 import { Box, HStack, ScrollFog, VStack } from "@seed-design/react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { ActionButton } from "seed-design/ui/action-button";
 import {
@@ -10,12 +11,12 @@ import {
   SidePanelRoot,
 } from "seed-design/ui/side-panel";
 import { TextField, TextFieldInput } from "seed-design/ui/text-field";
-import {
-  deleteInvestor,
-  type Investor,
-  mockInvestors,
-} from "@/entities/investor";
+import type { Investor } from "@/entities/investor";
 import { ManageInvestorForm } from "@/features/manage-investor";
+import {
+  deleteInvestorAction,
+  listInvestorsAction,
+} from "@/features/manage-investor/model/actions";
 import {
   Table,
   TableBody,
@@ -25,8 +26,10 @@ import {
   TableRow,
 } from "@/shared/ui/table";
 
+const QUERY_KEY = ["admin-investors"];
+
 export function AdminInvestorTable() {
-  const [, setVersion] = useState(0);
+  const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
   const [sortDesc, setSortDesc] = useState(true);
   const [open, setOpen] = useState(false);
@@ -34,15 +37,28 @@ export function AdminInvestorTable() {
     undefined,
   );
 
+  const { data: investors = [] } = useQuery({
+    queryKey: QUERY_KEY,
+    queryFn: listInvestorsAction,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteInvestorAction,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+      setOpen(false);
+    },
+  });
+
   const rows = useMemo(() => {
-    const filtered = mockInvestors.filter(
+    const filtered = investors.filter(
       (investor) =>
         investor.name.includes(query) || investor.studentId.includes(query),
     );
     return [...filtered].sort((a, b) =>
       sortDesc ? b.totalBudget - a.totalBudget : a.totalBudget - b.totalBudget,
     );
-  }, [query, sortDesc]);
+  }, [investors, query, sortDesc]);
 
   const openCreate = () => {
     setEditingInvestor(undefined);
@@ -53,7 +69,7 @@ export function AdminInvestorTable() {
     setOpen(true);
   };
   const refresh = () => {
-    setVersion((v) => v + 1);
+    queryClient.invalidateQueries({ queryKey: QUERY_KEY });
     setOpen(false);
   };
 
@@ -134,10 +150,7 @@ export function AdminInvestorTable() {
                   variant="criticalSolid"
                   size="large"
                   className="w-full"
-                  onClick={() => {
-                    deleteInvestor(editingInvestor.id);
-                    refresh();
-                  }}
+                  onClick={() => deleteMutation.mutate(editingInvestor.id)}
                 >
                   삭제
                 </ActionButton>

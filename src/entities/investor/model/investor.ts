@@ -1,3 +1,5 @@
+import { createClient } from "@/shared/lib/supabase/server";
+
 export interface Investor {
   id: string;
   studentId: string;
@@ -5,74 +7,57 @@ export interface Investor {
   totalBudget: number;
 }
 
-export const mockCurrentInvestor: Investor = {
-  id: "investor-me",
-  studentId: "20241001",
-  name: "나",
-  totalBudget: 100_000,
-};
-
-export const mockInvestors: Investor[] = [
-  mockCurrentInvestor,
-  {
-    id: "investor-1",
-    studentId: "20231001",
-    name: "김지호",
-    totalBudget: 100_000,
-  },
-  {
-    id: "investor-2",
-    studentId: "20231002",
-    name: "박서준",
-    totalBudget: 100_000,
-  },
-  {
-    id: "investor-3",
-    studentId: "20231003",
-    name: "이하늘",
-    totalBudget: 100_000,
-  },
-  {
-    id: "investor-4",
-    studentId: "20231004",
-    name: "최유진",
-    totalBudget: 100_000,
-  },
-  {
-    id: "investor-5",
-    studentId: "20231005",
-    name: "정민서",
-    totalBudget: 100_000,
-  },
-  {
-    id: "investor-6",
-    studentId: "20231006",
-    name: "한소율",
-    totalBudget: 100_000,
-  },
-];
-
-const INITIAL_INVESTORS: Investor[] = structuredClone(mockInvestors);
-
-export function getInvestorById(id: string): Investor | undefined {
-  return mockInvestors.find((investor) => investor.id === id);
+function mapInvestor(row: {
+  id: string;
+  student_id: string;
+  name: string;
+  total_budget: number;
+}): Investor {
+  return {
+    id: row.id,
+    studentId: row.student_id,
+    name: row.name,
+    totalBudget: row.total_budget,
+  };
 }
 
-export function addInvestor(investor: Investor): void {
-  mockInvestors.push(investor);
+export async function getInvestorById(id: string): Promise<Investor | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("investors")
+    .select("id, student_id, name, total_budget")
+    .eq("id", id)
+    .maybeSingle();
+  return data ? mapInvestor(data) : null;
 }
 
-export function updateInvestor(id: string, patch: Partial<Investor>): void {
-  const investor = getInvestorById(id);
-  if (investor) Object.assign(investor, patch);
+export async function listInvestors(): Promise<Investor[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("investors")
+    .select("id, student_id, name, total_budget");
+  return (data ?? []).map(mapInvestor);
 }
 
-export function deleteInvestor(id: string): void {
-  const index = mockInvestors.findIndex((investor) => investor.id === id);
-  if (index >= 0) mockInvestors.splice(index, 1);
+// 아직 학생 인증이 없어 "나"를 구분할 방법이 없다 — mockCurrentInvestor와 동일한
+// 한계로, 고정 seed 투자자 한 명을 "나"로 취급한다. 인증이 붙으면 세션의
+// student_id로 조회하도록 바꿀 것.
+export async function getCurrentInvestor(): Promise<Investor | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("investors")
+    .select("id, student_id, name, total_budget")
+    .eq("student_id", "20241001")
+    .maybeSingle();
+  return data ? mapInvestor(data) : null;
 }
 
-export function resetInvestors(): void {
-  mockInvestors.length = 0;
-  mockInvestors.push(...structuredClone(INITIAL_INVESTORS));
+export async function getInvestorBudget(investorId: string): Promise<number> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("investor_budgets")
+    .select("remaining_budget")
+    .eq("investor_id", investorId)
+    .maybeSingle();
+  return data?.remaining_budget ?? 0;
 }

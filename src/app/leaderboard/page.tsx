@@ -1,14 +1,23 @@
 "use client";
 
 import { Box, Text, VStack } from "@seed-design/react";
-import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ActionButton } from "seed-design/ui/action-button";
-import { getScoreLeaderboard } from "@/entities/score";
-import { getTeamById } from "@/entities/team";
+import { getScoreLeaderboardAction } from "@/entities/score/model/actions";
+import { listTeamsAction } from "@/entities/team/model/actions";
+
+const QUERY_KEY = ["leaderboard"];
 
 export default function LeaderboardPage() {
-  const [, setVersion] = useState(0);
-  const entries = getScoreLeaderboard();
+  const queryClient = useQueryClient();
+  const { data: entries = [] } = useQuery({
+    queryKey: QUERY_KEY,
+    queryFn: getScoreLeaderboardAction,
+  });
+  const { data: teams = [] } = useQuery({
+    queryKey: ["teams"],
+    queryFn: listTeamsAction,
+  });
 
   return (
     <Box
@@ -36,14 +45,17 @@ export default function LeaderboardPage() {
             alignSelf: "center",
             marginBottom: "var(--seed-dimension-x8)",
           }}
-          onClick={() => setVersion((v) => v + 1)}
+          onClick={() => {
+            queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+            queryClient.invalidateQueries({ queryKey: ["teams"] });
+          }}
         >
           새로고침
         </ActionButton>
 
         <VStack gap="x3" width="full">
           {entries.map((entry, index) => {
-            const team = getTeamById(entry.teamId);
+            const team = teams.find((t) => t.id === entry.teamId);
             const isTop = index === 0;
             return (
               <Box

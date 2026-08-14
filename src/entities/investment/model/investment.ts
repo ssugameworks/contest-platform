@@ -1,103 +1,77 @@
-export interface Investment {
-  teamId: string;
-  amount: number;
+import { createClient } from "@/shared/lib/supabase/server";
+import type { Investment, Transaction, TransactionType } from "./pure";
+
+export type { Investment, Transaction, TransactionType } from "./pure";
+export { maskInvestorName } from "./pure";
+
+export async function getTeamInvestmentTotals(): Promise<Investment[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("team_investment_totals")
+    .select("team_id, amount");
+  return (data ?? []).map((row) => ({
+    teamId: row.team_id as string,
+    amount: row.amount ?? 0,
+  }));
 }
 
-export const mockInvestment: Investment = {
-  teamId: "team-1",
-  amount: 3_200_000,
-};
+export async function getTeamInvestmentTotal(teamId: string): Promise<number> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("team_investment_totals")
+    .select("amount")
+    .eq("team_id", teamId)
+    .maybeSingle();
+  return data?.amount ?? 0;
+}
 
-export const mockLeaderboard: Investment[] = [
-  mockInvestment,
-  { teamId: "team-2", amount: 5_400_000 },
-  { teamId: "team-3", amount: 2_100_000 },
-  { teamId: "team-4", amount: 4_000_000 },
-  { teamId: "team-5", amount: 1_500_000 },
-  { teamId: "team-6", amount: 900_000 },
-];
-
-export function getInvestmentRank(teamId: string): {
-  rank: number;
-  totalTeams: number;
-} {
-  const sorted = [...mockLeaderboard].sort((a, b) => b.amount - a.amount);
+export async function getInvestmentRank(
+  teamId: string,
+): Promise<{ rank: number; totalTeams: number }> {
+  const totals = await getTeamInvestmentTotals();
+  const sorted = [...totals].sort((a, b) => b.amount - a.amount);
   return {
-    rank: sorted.findIndex((i) => i.teamId === teamId) + 1,
+    rank: sorted.findIndex((entry) => entry.teamId === teamId) + 1,
     totalTeams: sorted.length,
   };
 }
 
-export function getInvestorCount(teamId: string): number {
-  return new Set(
-    mockTransactions
-      .filter((tx) => tx.teamId === teamId)
-      .map((tx) => tx.investorId),
-  ).size;
+export async function getTransactions(teamId: string): Promise<Transaction[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("transactions")
+    .select("id, team_id, investor_id, type, amount, investors(name)")
+    .eq("team_id", teamId)
+    .order("created_at", { ascending: false });
+  return (data ?? []).map((tx) => ({
+    id: tx.id,
+    teamId: tx.team_id,
+    investorId: tx.investor_id,
+    investorName: tx.investors?.name ?? "",
+    type: tx.type as TransactionType,
+    amount: tx.amount,
+  }));
 }
 
-export function maskInvestorName(name: string): string {
-  return `${name.charAt(0)}○○`;
+export async function getInvestorCount(teamId: string): Promise<number> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("transactions")
+    .select("investor_id")
+    .eq("team_id", teamId);
+  return new Set((data ?? []).map((row) => row.investor_id)).size;
 }
 
-export type TransactionType = "buy" | "sell";
-
-export interface Transaction {
-  id: string;
-  teamId: string;
-  investorId: string;
-  investorName: string;
-  type: TransactionType;
-  amount: number;
+export async function getInvestorHolding(
+  investorId: string,
+  teamId: string,
+): Promise<number> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("investor_team_holdings")
+    .select("holding")
+    .eq("investor_id", investorId)
+    .eq("team_id", teamId)
+    .maybeSingle();
+  return data?.holding ?? 0;
 }
-
-export const mockTransactions: Transaction[] = [
-  {
-    id: "tx-1",
-    teamId: "team-1",
-    investorId: "investor-1",
-    investorName: "김지호",
-    type: "buy",
-    amount: 500_000,
-  },
-  {
-    id: "tx-2",
-    teamId: "team-1",
-    investorId: "investor-2",
-    investorName: "박서준",
-    type: "buy",
-    amount: 1_200_000,
-  },
-  {
-    id: "tx-3",
-    teamId: "team-1",
-    investorId: "investor-3",
-    investorName: "이하늘",
-    type: "sell",
-    amount: 300_000,
-  },
-  {
-    id: "tx-4",
-    teamId: "team-1",
-    investorId: "investor-4",
-    investorName: "최유진",
-    type: "buy",
-    amount: 800_000,
-  },
-  {
-    id: "tx-5",
-    teamId: "team-1",
-    investorId: "investor-5",
-    investorName: "정민서",
-    type: "sell",
-    amount: 200_000,
-  },
-  {
-    id: "tx-6",
-    teamId: "team-1",
-    investorId: "investor-6",
-    investorName: "한소율",
-    type: "buy",
-    amount: 700_000,
-  },
-];

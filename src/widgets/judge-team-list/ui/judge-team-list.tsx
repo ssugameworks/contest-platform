@@ -1,6 +1,7 @@
 "use client";
 
 import { Box, HStack, ScrollFog, Text, VStack } from "@seed-design/react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { ActionButton } from "seed-design/ui/action-button";
 import {
@@ -9,13 +10,16 @@ import {
   BottomSheetFooter,
   BottomSheetRoot,
 } from "seed-design/ui/bottom-sheet";
-import { formatBoothLocation, getBoothByTeamId } from "@/entities/booth";
-import { getEvaluation, getEvaluationTotal } from "@/entities/score";
-import { mockTeams, type Team } from "@/entities/team";
+import { getBoothByTeamIdAction } from "@/entities/booth/model/actions";
+import { formatBoothLocation } from "@/entities/booth/model/pure";
+import { getEvaluationTotal } from "@/entities/score/model/pure";
+import type { Team } from "@/entities/team";
+import { listTeamsAction } from "@/entities/team/model/actions";
 import {
   EvaluateTeamForm,
   type EvaluateTeamFormHandle,
 } from "@/features/evaluate-team";
+import { getEvaluationAction } from "@/features/evaluate-team/model/actions";
 import {
   Table,
   TableBody,
@@ -25,36 +29,62 @@ import {
   TableRow,
 } from "@/shared/ui/table";
 
+function BoothCell({ teamId }: { teamId: string }) {
+  const { data: booth } = useQuery({
+    queryKey: ["booth", teamId],
+    queryFn: () => getBoothByTeamIdAction(teamId),
+  });
+  return <>{booth ? formatBoothLocation(booth) : "-"}</>;
+}
+
+function StatusCell({ judgeId, teamId }: { judgeId: string; teamId: string }) {
+  const { data: evaluation } = useQuery({
+    queryKey: ["evaluation", judgeId, teamId],
+    queryFn: () => getEvaluationAction(judgeId, teamId),
+  });
+  return (
+    <>
+      {evaluation?.submitted
+        ? `제출완료 (${getEvaluationTotal(evaluation)}점)`
+        : "미채점"}
+    </>
+  );
+}
+
 export function JudgeTeamList({ judgeId }: { judgeId: string }) {
-  const [, setVersion] = useState(0);
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [activeTeam, setActiveTeam] = useState<Team | null>(null);
   const [liveTotal, setLiveTotal] = useState(0);
   const formRef = useRef<EvaluateTeamFormHandle>(null);
 
-  const submittedCount = mockTeams.filter(
-    (team) => getEvaluation(judgeId, team.id)?.submitted,
-  ).length;
-  const activeEvaluation = activeTeam
-    ? getEvaluation(judgeId, activeTeam.id)
-    : undefined;
+  const { data: teams = [] } = useQuery({
+    queryKey: ["teams"],
+    queryFn: listTeamsAction,
+  });
+  const { data: activeEvaluation } = useQuery({
+    queryKey: ["evaluation", judgeId, activeTeam?.id],
+    queryFn: () =>
+      activeTeam ? getEvaluationAction(judgeId, activeTeam.id) : null,
+    enabled: !!activeTeam,
+  });
   const isReadOnly = activeEvaluation?.submitted ?? false;
 
-  const openTeam = (team: Team) => {
+  const openTeam = async (team: Team) => {
     setActiveTeam(team);
-    setLiveTotal(getEvaluationTotal(getEvaluation(judgeId, team.id)));
+    const evaluation = await getEvaluationAction(judgeId, team.id);
+    setLiveTotal(getEvaluationTotal(evaluation));
     setOpen(true);
   };
   const refresh = () => {
-    setVersion((v) => v + 1);
+    queryClient.invalidateQueries({ queryKey: ["evaluation", judgeId] });
+    queryClient.invalidateQueries({ queryKey: ["submitted-count", judgeId] });
     setOpen(false);
   };
 
   return (
     <VStack gap="x4" width="full">
-      <Text textStyle="t4Regular" color="fg.neutralSubtle">
-        {`${submittedCount} / ${mockTeams.length}팀 채점 완료`}
-      </Text>
+      <SubmittedCount judgeId={judgeId} teams={teams} />
 
       <Table>
         <TableHead>
@@ -65,27 +95,17 @@ export function JudgeTeamList({ judgeId }: { judgeId: string }) {
           </TableRow>
         </TableHead>
         <TableBody>
-          {mockTeams.map((team) => {
-            const evaluation = getEvaluation(judgeId, team.id);
-            const booth = getBoothByTeamId(team.id);
-            return (
-              <TableRow
-                key={team.id}
-                interactive
-                onClick={() => openTeam(team)}
-              >
-                <TableCell>{team.name}</TableCell>
-                <TableCell align="right">
-                  {evaluation?.submitted
-                    ? `제출완료 (${getEvaluationTotal(evaluation)}점)`
-                    : "미채점"}
-                </TableCell>
-                <TableCell>
-                  {booth ? formatBoothLocation(booth) : "-"}
-                </TableCell>
-              </TableRow>
-            );
-          })}
+          {teams.map((team) => (
+            <TableRow key={team.id} interactive onClick={() => openTeam(team)}>
+              <TableCell>{team.name}</TableCell>
+              <TableCell align="right">
+                <StatusCell judgeId={judgeId} teamId={team.id} />
+              </TableCell>
+              <TableCell>
+                <BoothCell teamId={team.id} />
+              </TableCell>
+            </TableRow>
+          ))}
         </TableBody>
       </Table>
 
@@ -141,5 +161,30 @@ export function JudgeTeamList({ judgeId }: { judgeId: string }) {
         </BottomSheetContent>
       </BottomSheetRoot>
     </VStack>
+  );
+}
+
+function SubmittedCount({
+  judgeId,
+  teams,
+}: {
+  judgeId: string;
+  teams: Team[];
+}) {
+  const { data: submittedCount = 0 } = useQuery({
+    queryKey: ["submitted-count", judgeId, teams.map((t) => t.id)],
+    queryFn: async () => {
+      const evaluations = await Promise.all(
+        teams.map((team) => getEvaluationAction(judgeId, team.id)),
+      );
+      return evaluations.filter((e) => e?.submitted).length;
+    },
+    enabled: teams.length > 0,
+  });
+
+  return (
+    <Text textStyle="t4Regular" color="fg.neutralSubtle">
+      {`${submittedCount} / ${teams.length}팀 채점 완료`}
+    </Text>
   );
 }

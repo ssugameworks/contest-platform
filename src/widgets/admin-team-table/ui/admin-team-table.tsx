@@ -1,6 +1,7 @@
 "use client";
 
 import { Box, HStack, ScrollFog, VStack } from "@seed-design/react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { ActionButton } from "seed-design/ui/action-button";
 import {
@@ -10,14 +11,9 @@ import {
   SidePanelRoot,
 } from "seed-design/ui/side-panel";
 import { TextField, TextFieldInput } from "seed-design/ui/text-field";
-import { formatBoothLocation, getBoothByTeamId } from "@/entities/booth";
-import {
-  getInvestmentRank,
-  getInvestorCount,
-  mockLeaderboard,
-} from "@/entities/investment";
-import { deleteTeam, mockTeams, type Team } from "@/entities/team";
+import type { Team } from "@/entities/team";
 import { ManageTeamForm } from "@/features/manage-team";
+import { deleteTeamAction } from "@/features/manage-team/model/actions";
 import {
   Table,
   TableBody,
@@ -26,25 +22,36 @@ import {
   TableHeadCell,
   TableRow,
 } from "@/shared/ui/table";
+import { listAdminTeamRows } from "../model/actions";
+
+const QUERY_KEY = ["admin-team-rows"];
 
 export function AdminTeamTable() {
-  const [, setVersion] = useState(0);
+  const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
   const [sortDesc, setSortDesc] = useState(true);
   const [open, setOpen] = useState(false);
   const [editingTeam, setEditingTeam] = useState<Team | undefined>(undefined);
 
+  const { data: rowsData = [] } = useQuery({
+    queryKey: QUERY_KEY,
+    queryFn: listAdminTeamRows,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteTeamAction,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+      setOpen(false);
+    },
+  });
+
   const rows = useMemo(() => {
-    const filtered = mockTeams.filter((team) => team.name.includes(query));
-    return [...filtered].sort((a, b) => {
-      const amountA =
-        mockLeaderboard.find((entry) => entry.teamId === a.id)?.amount ?? 0;
-      const amountB =
-        mockLeaderboard.find((entry) => entry.teamId === b.id)?.amount ?? 0;
-      return sortDesc ? amountB - amountA : amountA - amountB;
-    });
-    // rows re-derived from mockTeams on every render; setVersion forces a re-render after CRUD
-  }, [query, sortDesc]);
+    const filtered = rowsData.filter((row) => row.team.name.includes(query));
+    return [...filtered].sort((a, b) =>
+      sortDesc ? b.amount - a.amount : a.amount - b.amount,
+    );
+  }, [rowsData, query, sortDesc]);
 
   const openCreate = () => {
     setEditingTeam(undefined);
@@ -55,7 +62,7 @@ export function AdminTeamTable() {
     setOpen(true);
   };
   const refresh = () => {
-    setVersion((v) => v + 1);
+    queryClient.invalidateQueries({ queryKey: QUERY_KEY });
     setOpen(false);
   };
 
@@ -92,29 +99,19 @@ export function AdminTeamTable() {
           </TableRow>
         </TableHead>
         <TableBody>
-          {rows.map((team) => {
-            const amount =
-              mockLeaderboard.find((entry) => entry.teamId === team.id)
-                ?.amount ?? 0;
-            const investorCount = getInvestorCount(team.id);
-            const { rank } = getInvestmentRank(team.id);
-            const booth = getBoothByTeamId(team.id);
-            return (
-              <TableRow
-                key={team.id}
-                interactive
-                onClick={() => openEdit(team)}
-              >
-                <TableCell>{team.name}</TableCell>
-                <TableCell align="right">{`${amount.toLocaleString()}원`}</TableCell>
-                <TableCell align="right">{`${investorCount}명`}</TableCell>
-                <TableCell align="right">{`${rank}위`}</TableCell>
-                <TableCell>
-                  {booth ? formatBoothLocation(booth) : "-"}
-                </TableCell>
-              </TableRow>
-            );
-          })}
+          {rows.map((row) => (
+            <TableRow
+              key={row.team.id}
+              interactive
+              onClick={() => openEdit(row.team)}
+            >
+              <TableCell>{row.team.name}</TableCell>
+              <TableCell align="right">{`${row.amount.toLocaleString()}원`}</TableCell>
+              <TableCell align="right">{`${row.investorCount}명`}</TableCell>
+              <TableCell align="right">{`${row.rank}위`}</TableCell>
+              <TableCell>{row.boothLabel}</TableCell>
+            </TableRow>
+          ))}
         </TableBody>
       </Table>
 
@@ -148,10 +145,7 @@ export function AdminTeamTable() {
                   variant="criticalSolid"
                   size="large"
                   className="w-full"
-                  onClick={() => {
-                    deleteTeam(editingTeam.id);
-                    refresh();
-                  }}
+                  onClick={() => deleteMutation.mutate(editingTeam.id)}
                 >
                   삭제
                 </ActionButton>
