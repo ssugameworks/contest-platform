@@ -4,13 +4,13 @@ import {
   getInvestorCount,
   getTeamInvestmentTotal,
 } from "@/entities/investment";
-import { PLACEHOLDER_TEAM_ID } from "@/entities/team";
+import { requireParticipantTeamId } from "@/entities/session/model/session";
 import { PageHeader } from "@/shared/ui/page-header";
 import { StatCard } from "@/shared/ui/stat-card";
 import { InvestmentTransactions } from "@/widgets/investment-transactions";
 
 export default async function DashboardInvestmentPage() {
-  const teamId = PLACEHOLDER_TEAM_ID;
+  const teamId = await requireParticipantTeamId();
   const [{ rank }, investorCount, amount] = await Promise.all([
     getInvestmentRank(teamId),
     getInvestorCount(teamId),

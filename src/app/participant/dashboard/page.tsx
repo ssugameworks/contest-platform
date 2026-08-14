@@ -1,5 +1,7 @@
+import { requireParticipantTeamId } from "@/entities/session/model/session";
 import { DashboardOverview } from "@/widgets/dashboard-overview";
 
-export default function DashboardOverviewPage() {
-  return <DashboardOverview />;
+export default async function DashboardOverviewPage() {
+  const teamId = await requireParticipantTeamId();
+  return <DashboardOverview teamId={teamId} />;
 }

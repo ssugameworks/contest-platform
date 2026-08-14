@@ -1,11 +1,6 @@
 import { throwIfError } from "@/shared/lib/supabase/query";
 import { createClient } from "@/shared/lib/supabase/server";
 
-// 인증이 없어 "내 팀"을 구분할 방법이 없다 — mockTeam과 동일한 한계로, seed
-// 데이터의 첫 팀을 고정 placeholder로 취급한다. 인증이 붙으면 세션의 팀
-// 소속으로 바꿀 것.
-export const PLACEHOLDER_TEAM_ID = "a0000000-0000-4000-8000-000000000001";
-
 export interface Team {
   id: string;
   name: string;

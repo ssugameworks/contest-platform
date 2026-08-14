@@ -7,7 +7,8 @@ import {
 import type { Metadata } from "next";
 import { Avatar } from "seed-design/ui/avatar";
 import { IdentityPlaceholder } from "seed-design/ui/identity-placeholder";
-import { getTeamById, PLACEHOLDER_TEAM_ID } from "@/entities/team";
+import { requireParticipantTeamId } from "@/entities/session/model/session";
+import { getTeamById } from "@/entities/team";
 import { DashboardSideNav } from "@/widgets/dashboard-sidenav";
 
 export const metadata: Metadata = { title: "참가자 대시보드" };
@@ -34,7 +35,8 @@ const NAV_ITEMS = [
 export default async function DashboardLayout({
   children,
 }: LayoutProps<"/participant/dashboard">) {
-  const team = await getTeamById(PLACEHOLDER_TEAM_ID);
+  const teamId = await requireParticipantTeamId();
+  const team = await getTeamById(teamId);
 
   return (
     <DashboardSideNav

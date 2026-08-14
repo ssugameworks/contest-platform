@@ -1,4 +1,6 @@
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { cache } from "react";
 import {
   SESSION_COOKIE_NAME,
   verifySession,
@@ -17,7 +19,9 @@ export type CurrentUser =
 
 // participants/investors have no public SELECT policy, so this always goes
 // through the service-role client — same pattern as the other entities.
-export async function getCurrentUser(): Promise<CurrentUser | null> {
+// Wrapped in cache() so a layout + several pages calling this in the same
+// request only hit the DB once (React request memoization, not fetch()).
+export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const store = await cookies();
   const studentId = verifySession(store.get(SESSION_COOKIE_NAME)?.value);
   if (!studentId) return null;
@@ -55,4 +59,16 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   }
 
   return null;
+});
+
+// Guards participant-only routes (the participant dashboard). Not logged in
+// and "logged in but no team assigned yet" both bounce to /login — the
+// latter can't happen with the current seed data (every participant has a
+// team), so a dedicated message isn't worth building until it does.
+export async function requireParticipantTeamId(): Promise<string> {
+  const user = await getCurrentUser();
+  if (!user || user.kind !== "participant" || !user.teamId) {
+    redirect("/login");
+  }
+  return user.teamId;
 }
