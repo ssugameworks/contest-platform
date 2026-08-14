@@ -9,42 +9,28 @@ export interface TeamWriteInput {
   landingPageUrl: string | null;
   tags: string[];
   screenshotUrls: string[];
-  memberIds: string[];
 }
 
-async function syncTeamMembers(teamId: string, memberIds: string[]) {
+const TEAM_ASSETS_BUCKET = "team-assets";
+
+export async function uploadTeamImageAction(
+  formData: FormData,
+): Promise<string> {
+  const file = formData.get("file");
+  if (!(file instanceof File)) throw new Error("파일이 없어요");
+
   const supabase = createAdminClient();
+  const extension = file.name.split(".").pop() ?? "png";
+  const path = `${crypto.randomUUID()}.${extension}`;
+  const { error } = await supabase.storage
+    .from(TEAM_ASSETS_BUCKET)
+    .upload(path, file, { contentType: file.type });
+  if (error) throw new Error(error.message);
 
-  const { data: current, error: selectError } = await supabase
-    .from("team_members")
-    .select("student_id")
-    .eq("team_id", teamId);
-  if (selectError) throw new Error(selectError.message);
-  const toRemove = (current ?? [])
-    .map((row) => row.student_id)
-    .filter((studentId) => !memberIds.includes(studentId));
-
-  if (toRemove.length > 0) {
-    const { error } = await supabase
-      .from("team_members")
-      .delete()
-      .eq("team_id", teamId)
-      .in("student_id", toRemove);
-    if (error) throw new Error(error.message);
-  }
-
-  if (memberIds.length > 0) {
-    // upsert onConflict(student_id) — since student_id is the PK, this also
-    // reassigns a participant who currently belongs to a different team.
-    const { error } = await supabase.from("team_members").upsert(
-      memberIds.map((studentId) => ({
-        student_id: studentId,
-        team_id: teamId,
-      })),
-      { onConflict: "student_id" },
-    );
-    if (error) throw new Error(error.message);
-  }
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from(TEAM_ASSETS_BUCKET).getPublicUrl(path);
+  return publicUrl;
 }
 
 export async function createTeamAction(input: TeamWriteInput): Promise<string> {
@@ -62,14 +48,6 @@ export async function createTeamAction(input: TeamWriteInput): Promise<string> {
     .select("id")
     .single();
   if (error || !data) throw new Error(error?.message ?? "팀 생성에 실패했어요");
-
-  try {
-    await syncTeamMembers(data.id, input.memberIds);
-  } catch (syncError) {
-    // roll back the team so a member-sync failure doesn't leave an orphan
-    await supabase.from("teams").delete().eq("id", data.id);
-    throw syncError;
-  }
   return data.id;
 }
 
@@ -90,8 +68,6 @@ export async function updateTeamAction(
     })
     .eq("id", id);
   if (error) throw new Error(error.message);
-
-  await syncTeamMembers(id, input.memberIds);
 }
 
 export async function deleteTeamAction(id: string): Promise<void> {

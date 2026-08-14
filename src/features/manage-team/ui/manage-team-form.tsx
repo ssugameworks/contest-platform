@@ -1,25 +1,23 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Text, VStack } from "@seed-design/react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { VStack } from "@seed-design/react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { Checkbox } from "seed-design/ui/checkbox";
 import { Snackbar, useSnackbarAdapter } from "seed-design/ui/snackbar";
 import {
   TextField,
   TextFieldInput,
   TextFieldTextarea,
 } from "seed-design/ui/text-field";
-import { listParticipantsAction } from "@/entities/participant/model/actions";
 import type { Team } from "@/entities/team";
-import { listTeamsAction } from "@/entities/team/model/actions";
 import {
   type ManageTeamInput,
   manageTeamSchema,
 } from "@/entities/team/model/schema";
 import { createTeamAction, updateTeamAction } from "../model/actions";
+import { TeamImageUploadField } from "./team-image-upload-field";
 
 export function ManageTeamForm({
   team,
@@ -30,15 +28,12 @@ export function ManageTeamForm({
 }) {
   const queryClient = useQueryClient();
   const adapter = useSnackbarAdapter();
-  const [memberIds, setMemberIds] = useState<string[]>(team?.memberIds ?? []);
-  const { data: teams = [] } = useQuery({
-    queryKey: ["teams"],
-    queryFn: listTeamsAction,
-  });
-  const { data: participants = [] } = useQuery({
-    queryKey: ["participants"],
-    queryFn: listParticipantsAction,
-  });
+  const [imageUrl, setImageUrl] = useState<string[]>(
+    team?.imageUrl ? [team.imageUrl] : [],
+  );
+  const [screenshotUrls, setScreenshotUrls] = useState<string[]>(
+    team?.screenshotUrls ?? [],
+  );
   const {
     register,
     handleSubmit,
@@ -48,25 +43,10 @@ export function ManageTeamForm({
     defaultValues: {
       name: team?.name ?? "",
       description: team?.description ?? "",
-      imageUrl: team?.imageUrl ?? "",
       tags: team?.tags.join(", ") ?? "",
-      screenshotUrls: team?.screenshotUrls.join(", ") ?? "",
       landingPageUrl: team?.landingPageUrl ?? "",
     },
   });
-
-  const toggleMember = (studentId: string, checked: boolean) => {
-    setMemberIds((current) =>
-      checked
-        ? [...current, studentId]
-        : current.filter((id) => id !== studentId),
-    );
-  };
-
-  const findOtherTeam = (studentId: string) =>
-    teams.find(
-      (other) => other.id !== team?.id && other.memberIds.includes(studentId),
-    );
 
   const onSubmit = handleSubmit(async (data) => {
     const tags = data.tags
@@ -75,20 +55,13 @@ export function ManageTeamForm({
           .map((tag) => tag.trim())
           .filter(Boolean)
       : [];
-    const screenshotUrls = data.screenshotUrls
-      ? data.screenshotUrls
-          .split(",")
-          .map((url) => url.trim())
-          .filter(Boolean)
-      : [];
     const input = {
       name: data.name,
       description: data.description,
-      imageUrl: data.imageUrl || null,
+      imageUrl: imageUrl[0] ?? null,
       landingPageUrl: data.landingPageUrl || null,
       tags,
       screenshotUrls,
-      memberIds,
     };
 
     try {
@@ -141,18 +114,12 @@ export function ManageTeamForm({
           />
         </TextField>
 
-        <TextField
-          label="팀 로고 이미지 URL"
-          defaultValue={team?.imageUrl ?? ""}
-          invalid={!!errors.imageUrl}
-          errorMessage={errors.imageUrl?.message}
-        >
-          <TextFieldInput
-            type="url"
-            placeholder="https://example.com/logo.png"
-            {...register("imageUrl")}
-          />
-        </TextField>
+        <TeamImageUploadField
+          label="팀 로고 이미지"
+          maxFiles={1}
+          urls={imageUrl}
+          onUrlsChange={setImageUrl}
+        />
 
         <TextField
           label="태그"
@@ -167,18 +134,12 @@ export function ManageTeamForm({
           />
         </TextField>
 
-        <TextField
-          label="제품 스크린샷 URL"
-          description="쉼표(,)로 구분해서 입력해주세요"
-          defaultValue={team?.screenshotUrls.join(", ")}
-          invalid={!!errors.screenshotUrls}
-          errorMessage={errors.screenshotUrls?.message}
-        >
-          <TextFieldInput
-            placeholder="https://example.com/1.png, https://example.com/2.png"
-            {...register("screenshotUrls")}
-          />
-        </TextField>
+        <TeamImageUploadField
+          label="제품 스크린샷"
+          maxFiles={5}
+          urls={screenshotUrls}
+          onUrlsChange={setScreenshotUrls}
+        />
 
         <TextField
           label="랜딩페이지 링크"
@@ -192,32 +153,6 @@ export function ManageTeamForm({
             {...register("landingPageUrl")}
           />
         </TextField>
-
-        <VStack gap="x2" width="full">
-          <Text textStyle="t3Bold" color="fg.neutralSubtle">
-            팀원
-          </Text>
-          <VStack gap="x1" width="full">
-            {participants.map((participant) => {
-              const otherTeam = findOtherTeam(participant.studentId);
-              return (
-                <Checkbox
-                  key={participant.studentId}
-                  disabled={!!otherTeam}
-                  checked={memberIds.includes(participant.studentId)}
-                  onCheckedChange={(checked) =>
-                    toggleMember(participant.studentId, checked === true)
-                  }
-                  label={
-                    otherTeam
-                      ? `${participant.name} (${otherTeam.name} 소속)`
-                      : participant.name
-                  }
-                />
-              );
-            })}
-          </VStack>
-        </VStack>
       </VStack>
     </form>
   );

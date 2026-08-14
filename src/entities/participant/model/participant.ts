@@ -4,6 +4,7 @@ import { throwIfError } from "@/shared/lib/supabase/query";
 export interface Participant {
   studentId: string;
   name: string;
+  teamId: string | null;
 }
 
 // participants has no public SELECT policy (student ids are PII) — reads
@@ -12,10 +13,11 @@ export async function listParticipants(): Promise<Participant[]> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("participants")
-    .select("student_id, name");
+    .select("student_id, name, team_members(team_id)");
   throwIfError(error);
   return (data ?? []).map((row) => ({
     studentId: row.student_id,
     name: row.name,
+    teamId: row.team_members?.team_id ?? null,
   }));
 }
