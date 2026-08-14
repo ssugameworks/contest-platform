@@ -7,13 +7,10 @@ import { useForm } from "react-hook-form";
 import { ActionButton } from "seed-design/ui/action-button";
 import { Snackbar, useSnackbarAdapter } from "seed-design/ui/snackbar";
 import { TextField, TextFieldInput } from "seed-design/ui/text-field";
-import { participantLoginAction } from "@/entities/session";
-import {
-  type ParticipantLoginInput,
-  participantLoginSchema,
-} from "../model/schema";
+import { investorLoginOrSignupAction } from "@/entities/session";
+import { type InvestorLoginInput, investorLoginSchema } from "../model/schema";
 
-export function ParticipantLoginForm() {
+export function InvestorLoginForm() {
   const adapter = useSnackbarAdapter();
   const router = useRouter();
   const {
@@ -21,25 +18,24 @@ export function ParticipantLoginForm() {
     handleSubmit,
     setError,
     formState: { errors, isSubmitting },
-  } = useForm<ParticipantLoginInput>({
-    resolver: zodResolver(participantLoginSchema),
+  } = useForm<InvestorLoginInput>({
+    resolver: zodResolver(investorLoginSchema),
   });
 
-  const onSubmit = handleSubmit(async ({ studentId }) => {
-    let teamId: string | null;
+  const onSubmit = handleSubmit(async ({ studentId, name }) => {
     try {
-      ({ teamId } = await participantLoginAction(studentId));
+      await investorLoginOrSignupAction(studentId, name ?? "");
     } catch (error) {
       setError("studentId", {
-        message: error instanceof Error ? error.message : "로그인에 실패했어요",
+        message: error instanceof Error ? error.message : "가입에 실패했어요",
       });
       return;
     }
     adapter.create({
       onClose: () => {},
-      render: () => <Snackbar message="참가자로 로그인했어요" />,
+      render: () => <Snackbar message="투자자로 로그인했어요" />,
     });
-    router.push(teamId ? `/teams/${teamId}` : "/");
+    router.push("/leaderboard");
   });
 
   return (
@@ -57,13 +53,19 @@ export function ParticipantLoginForm() {
             {...register("studentId")}
           />
         </TextField>
+        <TextField
+          label="이름"
+          description="처음 가입하는 경우에만 입력해주세요"
+        >
+          <TextFieldInput placeholder="홍길동" {...register("name")} />
+        </TextField>
         <ActionButton
           type="submit"
           variant="brandSolid"
           loading={isSubmitting}
           className="w-full"
         >
-          로그인
+          가입/로그인
         </ActionButton>
       </VStack>
     </form>

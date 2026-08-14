@@ -76,7 +76,7 @@ export function InvestButton({
   const tradeMutation = useMutation({
     mutationFn: ({ amount }: TradeAmountInput) => {
       if (!context) throw new Error("투자자 정보를 불러오지 못했어요");
-      return placeTradeAction(context.investorId, teamId, tradeType, amount);
+      return placeTradeAction(teamId, tradeType, amount);
     },
     onSuccess: (_, { amount }) => {
       queryClient.invalidateQueries({ queryKey });

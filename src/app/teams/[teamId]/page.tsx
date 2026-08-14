@@ -6,6 +6,7 @@ import {
   getTeamInvestmentTotal,
 } from "@/entities/investment";
 import { listParticipants } from "@/entities/participant";
+import { getCurrentUser } from "@/entities/session/model/session";
 import { getTeamById } from "@/entities/team";
 import { TeamShowcase } from "@/widgets/team-showcase";
 
@@ -19,13 +20,14 @@ export default async function TeamPage({
     notFound();
   }
 
-  const [booth, { rank }, investorCount, amount, participants] =
+  const [booth, { rank }, investorCount, amount, participants, currentUser] =
     await Promise.all([
       getBoothByTeamId(team.id),
       getInvestmentRank(team.id),
       getInvestorCount(team.id),
       getTeamInvestmentTotal(team.id),
       listParticipants(),
+      getCurrentUser(),
     ]);
   const members = team.memberIds
     .map((id) => participants.find((p) => p.studentId === id))
@@ -39,6 +41,7 @@ export default async function TeamPage({
       investorCount={investorCount}
       amount={amount}
       members={members}
+      currentUser={currentUser}
     />
   );
 }
