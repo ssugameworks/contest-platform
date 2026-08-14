@@ -91,18 +91,21 @@ export type Database = {
         Row: {
           id: string;
           name: string;
+          password_hash: string | null;
           student_id: string;
           total_budget: number;
         };
         Insert: {
           id?: string;
           name: string;
+          password_hash?: string | null;
           student_id: string;
           total_budget?: number;
         };
         Update: {
           id?: string;
           name?: string;
+          password_hash?: string | null;
           student_id?: string;
           total_budget?: number;
         };
@@ -160,14 +163,17 @@ export type Database = {
       participants: {
         Row: {
           name: string;
+          password_hash: string | null;
           student_id: string;
         };
         Insert: {
           name: string;
+          password_hash?: string | null;
           student_id: string;
         };
         Update: {
           name?: string;
+          password_hash?: string | null;
           student_id?: string;
         };
         Relationships: [];
@@ -197,16 +203,19 @@ export type Database = {
         Row: {
           id: string;
           name: string;
+          password_hash: string | null;
           role: string;
         };
         Insert: {
           id: string;
           name: string;
+          password_hash?: string | null;
           role: string;
         };
         Update: {
           id?: string;
           name?: string;
+          password_hash?: string | null;
           role?: string;
         };
         Relationships: [];

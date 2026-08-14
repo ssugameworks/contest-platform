@@ -21,8 +21,8 @@ export function AdminLoginForm() {
     formState: { errors, isSubmitting },
   } = useForm<AdminLoginInput>({ resolver: zodResolver(adminLoginSchema) });
 
-  const onSubmit = handleSubmit(async ({ id }) => {
-    const staff = await findStaffByIdAction(id);
+  const onSubmit = handleSubmit(async ({ id, password }) => {
+    const staff = await findStaffByIdAction(id, password);
     if (!staff) {
       setError("id", { message: "아이디 또는 비밀번호를 확인해주세요" });
       return;

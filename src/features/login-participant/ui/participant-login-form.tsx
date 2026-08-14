@@ -25,8 +25,8 @@ export function ParticipantLoginForm() {
     resolver: zodResolver(participantLoginSchema),
   });
 
-  const onSubmit = handleSubmit(async ({ studentId }) => {
-    const result = await participantLoginAction(studentId);
+  const onSubmit = handleSubmit(async ({ studentId, password }) => {
+    const result = await participantLoginAction(studentId, password);
     if (!result.ok) {
       setError("studentId", { message: result.message });
       return;
@@ -51,6 +51,18 @@ export function ParticipantLoginForm() {
             inputMode="numeric"
             placeholder="20231234"
             {...register("studentId")}
+          />
+        </TextField>
+        <TextField
+          label="비밀번호"
+          description="처음 로그인 시 입력한 비밀번호로 계속 로그인해요"
+          invalid={!!errors.password}
+          errorMessage={errors.password?.message}
+        >
+          <TextFieldInput
+            type="password"
+            placeholder="********"
+            {...register("password")}
           />
         </TextField>
         <ActionButton
