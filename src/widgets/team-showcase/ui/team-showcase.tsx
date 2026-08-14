@@ -12,6 +12,8 @@ import {
   Text,
   VStack,
 } from "@seed-design/react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 import { IconKakaoTalk } from "seed-design/icon/icon-kakaotalk";
 import { ActionButton } from "seed-design/ui/action-button";
 import { Avatar, AvatarStack } from "seed-design/ui/avatar";
@@ -19,6 +21,8 @@ import { IdentityPlaceholder } from "seed-design/ui/identity-placeholder";
 import { Snackbar, useSnackbarAdapter } from "seed-design/ui/snackbar";
 import { type Booth, formatBoothLocation } from "@/entities/booth/model/pure";
 import type { Participant } from "@/entities/participant";
+import type { CurrentUser } from "@/entities/session";
+import { getCurrentStaff } from "@/entities/staff/model/pure";
 import type { Team } from "@/entities/team";
 import { InvestButton } from "@/features/invest-in-team";
 import { PageHeader } from "@/shared/ui/page-header";
@@ -32,6 +36,7 @@ export function TeamShowcase({
   investorCount,
   amount,
   members,
+  currentUser,
 }: {
   team: Team;
   booth: Booth | null;
@@ -39,8 +44,15 @@ export function TeamShowcase({
   investorCount: number;
   amount: number;
   members: Participant[];
+  currentUser: CurrentUser | null;
 }) {
   const adapter = useSnackbarAdapter();
+  // getCurrentStaff() is client-only module state, invisible during SSR —
+  // check after mount so the server-rendered markup doesn't mismatch it.
+  const [isJudge, setIsJudge] = useState(false);
+  useEffect(() => {
+    setIsJudge(getCurrentStaff()?.role === "judge");
+  }, []);
 
   const shareStub = () => {
     adapter.create({
@@ -56,6 +68,29 @@ export function TeamShowcase({
       render: () => <Snackbar message="링크를 복사했어요" />,
     });
   };
+
+  const bottomAction = isJudge ? null : !currentUser ? (
+    <ActionButton variant="brandSolid" size="large" className="w-full" asChild>
+      <Link href="/login">로그인하고 투자하기</Link>
+    </ActionButton>
+  ) : currentUser.kind === "investor" ? (
+    <InvestButton teamId={team.id} teamName={team.name} />
+  ) : currentUser.teamId === team.id ? (
+    <HStack gap="x2" width="full">
+      <ActionButton
+        variant="neutralWeak"
+        size="large"
+        flexGrow={1}
+        onClick={copyLink}
+      >
+        공유
+      </ActionButton>
+
+      <ActionButton variant="brandSolid" size="large" flexGrow={3} asChild>
+        <Link href="/participant/dashboard">대시보드</Link>
+      </ActionButton>
+    </HStack>
+  ) : null;
 
   return (
     <Box
@@ -185,18 +220,24 @@ export function TeamShowcase({
         </ScrollFog>
       </Box>
 
-      {/* 투자하기 — ScrollFog 밖에 고정, 콘텐츠는 뒤에서 스크롤 */}
-      <Box
-        bg="bg.layerDefault"
-        width="full"
-        px="spacingX.globalGutter"
-        py="x4"
-        style={{ paddingBottom: "calc(var(--seed-safe-area-bottom) + 16px)" }}
-      >
-        <Box width="full" style={{ maxWidth: "720px", marginInline: "auto" }}>
-          <InvestButton teamId={team.id} teamName={team.name} />
+      {/* 하단 액션 — ScrollFog 밖에 고정, 콘텐츠는 뒤에서 스크롤. 세션에
+          따라 로그인 유도/매수매도/공유 중 하나로 바뀌고, 다른 팀
+          참가자거나 심사위원이면 아예 렌더링하지 않는다. */}
+      {bottomAction && (
+        <Box
+          bg="bg.layerDefault"
+          width="full"
+          px="spacingX.globalGutter"
+          py="x4"
+          style={{
+            paddingBottom: "calc(var(--seed-safe-area-bottom) + 16px)",
+          }}
+        >
+          <Box width="full" style={{ maxWidth: "720px", marginInline: "auto" }}>
+            {bottomAction}
+          </Box>
         </Box>
-      </Box>
+      )}
     </Box>
   );
 }

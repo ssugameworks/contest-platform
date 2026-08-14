@@ -15,7 +15,7 @@ import {
   type ManageTeamInput,
   manageTeamSchema,
 } from "@/entities/team/model/schema";
-import { updateTeamAction } from "@/features/manage-team/model/actions";
+import { updateMyTeamAction } from "../model/actions";
 
 export function EditTeamProfileForm({ team }: { team: Team }) {
   const adapter = useSnackbarAdapter();
@@ -49,7 +49,7 @@ export function EditTeamProfileForm({ team }: { team: Team }) {
           .filter(Boolean)
       : [];
 
-    await updateTeamAction(team.id, {
+    await updateMyTeamAction({
       name: data.name,
       description: data.description,
       imageUrl: data.imageUrl || null,

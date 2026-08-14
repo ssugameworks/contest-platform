@@ -4,6 +4,8 @@ import { createAdminClient } from "@/shared/lib/supabase/admin";
 import {
   getInvestmentWeight,
   getScoreLeaderboard,
+  type JudgeEvaluation,
+  listEvaluations,
   type ScoreLeaderboardEntry,
 } from "./score";
 
@@ -11,6 +13,10 @@ export async function getScoreLeaderboardAction(): Promise<
   ScoreLeaderboardEntry[]
 > {
   return getScoreLeaderboard();
+}
+
+export async function listEvaluationsAction(): Promise<JudgeEvaluation[]> {
+  return listEvaluations();
 }
 
 export async function getInvestmentWeightAction(): Promise<number> {

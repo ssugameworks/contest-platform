@@ -49,6 +49,19 @@ export async function getEvaluation(
   return data ? mapEvaluation(data) : undefined;
 }
 
+// One query for every judge×team evaluation — for list views (judge's team
+// list, admin score table) that otherwise fire one getEvaluation per cell.
+// Unfiltered (includes drafts), unlike getJudgeScore/getJudgeScores which
+// only want submitted ones for the average.
+export async function listEvaluations(): Promise<JudgeEvaluation[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("judge_evaluations")
+    .select("judge_id, team_id, criteria_scores, memo, submitted");
+  throwIfError(error);
+  return (data ?? []).map(mapEvaluation);
+}
+
 // 잠정 합산 방식: 제출 완료된 심사위원 평가들의 단순 평균 (추후 바뀔 수 있음)
 export async function getJudgeScore(teamId: string): Promise<number> {
   const supabase = await createClient();

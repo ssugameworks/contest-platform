@@ -11,7 +11,7 @@ import {
 import { listParticipants } from "@/entities/participant";
 import type { ScheduleStatus } from "@/entities/schedule";
 import { listSchedule } from "@/entities/schedule";
-import { getTeamById, PLACEHOLDER_TEAM_ID } from "@/entities/team";
+import { getTeamById } from "@/entities/team";
 import { PageHeader } from "@/shared/ui/page-header";
 import { StatCard } from "@/shared/ui/stat-card";
 
@@ -78,8 +78,8 @@ function TimelineNode({
   );
 }
 
-export async function DashboardOverview() {
-  const team = await getTeamById(PLACEHOLDER_TEAM_ID);
+export async function DashboardOverview({ teamId }: { teamId: string }) {
+  const team = await getTeamById(teamId);
   if (!team) return null;
 
   const [{ rank }, investorCount, amount, participants, schedule] =

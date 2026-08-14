@@ -34,14 +34,16 @@ export async function getTradeContextAction(
 }
 
 export async function placeTradeAction(
-  investorId: string,
   teamId: string,
   type: TransactionType,
   amount: number,
 ): Promise<void> {
+  const investor = await getCurrentInvestor();
+  if (!investor) throw new Error("투자자로 로그인해주세요");
+
   const supabase = createAdminClient();
   const { error } = await supabase.rpc("place_trade", {
-    p_investor_id: investorId,
+    p_investor_id: investor.id,
     p_team_id: teamId,
     p_type: type,
     p_amount: amount,

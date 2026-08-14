@@ -24,7 +24,7 @@ export function AdminLoginForm() {
   const onSubmit = handleSubmit(async ({ id }) => {
     const staff = await findStaffByIdAction(id);
     if (!staff) {
-      setError("id", { message: "등록되지 않은 아이디예요" });
+      setError("id", { message: "아이디 또는 비밀번호를 확인해주세요" });
       return;
     }
 
@@ -50,7 +50,7 @@ export function AdminLoginForm() {
           invalid={!!errors.id}
           errorMessage={errors.id?.message}
         >
-          <TextFieldInput type="text" placeholder="admin" {...register("id")} />
+          <TextFieldInput type="text" {...register("id")} />
         </TextField>
         <TextField
           label="비밀번호"
