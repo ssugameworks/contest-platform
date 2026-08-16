@@ -1,5 +1,6 @@
 "use server";
 
+import { requireAdmin } from "@/entities/staff/model/session";
 import { createAdminClient } from "@/shared/lib/supabase/admin";
 import { manageParticipantSchema } from "./schema";
 
@@ -33,6 +34,7 @@ async function syncParticipantTeam(studentId: string, teamId: string | null) {
 export async function createParticipantAction(
   input: ParticipantWriteInput,
 ): Promise<void> {
+  await requireAdmin();
   const parsed = manageParticipantSchema.parse(input);
   const supabase = createAdminClient();
   const { error } = await supabase.from("participants").insert({
@@ -45,13 +47,25 @@ export async function createParticipantAction(
     }
     throw new Error(error.message);
   }
-  await syncParticipantTeam(parsed.studentId, parsed.teamId);
+
+  try {
+    await syncParticipantTeam(parsed.studentId, parsed.teamId);
+  } catch (syncError) {
+    // roll back the participant so a team-sync failure doesn't leave a
+    // half-created row an admin can't recreate (duplicate 학번 on retry)
+    await supabase
+      .from("participants")
+      .delete()
+      .eq("student_id", parsed.studentId);
+    throw syncError;
+  }
 }
 
 export async function updateParticipantAction(
   studentId: string,
   input: Pick<ParticipantWriteInput, "name" | "teamId">,
 ): Promise<void> {
+  await requireAdmin();
   const parsed = manageParticipantSchema
     .pick({ name: true, teamId: true })
     .parse(input);
@@ -67,6 +81,7 @@ export async function updateParticipantAction(
 export async function deleteParticipantAction(
   studentId: string,
 ): Promise<void> {
+  await requireAdmin();
   const supabase = createAdminClient();
   const { error } = await supabase
     .from("participants")

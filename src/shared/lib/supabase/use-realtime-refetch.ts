@@ -10,7 +10,12 @@ export function useRealtimeRefetch(
 ) {
   const [connected, setConnected] = useState(false);
   const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange;
+  // Kept in an effect, not written directly during render — React can
+  // discard/replay a render, and this ref is read later by an async
+  // subscription callback, not during this same render pass.
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  });
 
   useEffect(() => {
     const supabase = createClient();

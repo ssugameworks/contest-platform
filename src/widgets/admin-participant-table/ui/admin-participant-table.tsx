@@ -15,8 +15,10 @@ export function AdminParticipantTable() {
     queryKey: ["teams"],
     queryFn: listTeamsAction,
   });
-  const teamName = (teamId: string | null) =>
-    teams.find((team) => team.id === teamId)?.name ?? "미배정";
+  const teamName = (teamId: string | null) => {
+    if (!teamId) return "미배정";
+    return teams.find((team) => team.id === teamId)?.name ?? "-";
+  };
 
   return (
     <AdminCrudTable<Participant>

@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { IconILowercaseSerifCircleLine } from "@karrotmarket/react-monochrome-icon";
 import { VStack } from "@seed-design/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRef } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Callout } from "seed-design/ui/callout";
 import {
@@ -55,7 +56,15 @@ export function ManageParticipantForm({
     },
   });
 
+  // The save button lives outside this <form> (AdminCrudTable's footer,
+  // wired via form="manage-participant-form"), so it can't be disabled by
+  // formState.isSubmitting — guard re-entrancy here instead, otherwise a
+  // fast double-click fires createParticipantAction twice and the second
+  // call fails on the 학번 the first call just created.
+  const submittingRef = useRef(false);
   const onSubmit = handleSubmit(async (data) => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     try {
       if (participant) {
         await updateParticipantAction(participant.studentId, {
@@ -77,6 +86,8 @@ export function ManageParticipantForm({
         ),
       });
       return;
+    } finally {
+      submittingRef.current = false;
     }
     await queryClient.invalidateQueries({ queryKey: ["admin-participants"] });
     onSaved();

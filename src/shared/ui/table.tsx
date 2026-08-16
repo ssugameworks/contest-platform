@@ -69,14 +69,17 @@ export function TableHeadCell({
   children,
   align = "left",
   onClick,
+  "aria-sort": ariaSort,
 }: {
   children: ReactNode;
   align?: "left" | "right" | "center";
   onClick?: () => void;
+  "aria-sort"?: "ascending" | "descending" | "none" | "other";
 }) {
   return (
     <th
       onClick={onClick}
+      aria-sort={ariaSort}
       style={{
         padding: "var(--seed-dimension-x2) var(--seed-dimension-x5)",
         textAlign: align,

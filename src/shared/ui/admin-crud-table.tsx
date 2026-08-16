@@ -1,9 +1,24 @@
 "use client";
 
-import { Box, HStack, ScrollFog, VStack } from "@seed-design/react";
+import {
+  Box,
+  HStack,
+  ResponsivePair,
+  ScrollFog,
+  VStack,
+} from "@seed-design/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type ReactNode, useMemo, useState } from "react";
 import { ActionButton } from "seed-design/ui/action-button";
+import {
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogRoot,
+  AlertDialogTitle,
+} from "seed-design/ui/alert-dialog";
 import {
   SidePanelBody,
   SidePanelContent,
@@ -66,8 +81,9 @@ export function AdminCrudTable<T>({
   const [sortDesc, setSortDesc] = useState(defaultSortDesc);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<T | undefined>(undefined);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const { data: items = [] } = useQuery({ queryKey, queryFn });
+  const { data: items = [], isError } = useQuery({ queryKey, queryFn });
 
   const deleteMutation = useMutation({
     mutationFn: deleteAction,
@@ -96,10 +112,12 @@ export function AdminCrudTable<T>({
 
   const openCreate = () => {
     setEditing(undefined);
+    setConfirmDelete(false);
     setOpen(true);
   };
   const openEdit = (item: T) => {
     setEditing(item);
+    setConfirmDelete(false);
     setOpen(true);
   };
   const refresh = () => {
@@ -134,31 +152,54 @@ export function AdminCrudTable<T>({
               <TableHeadCell
                 key={column.header}
                 align={column.align}
-                onClick={
-                  column.sortValue ? () => setSortDesc((d) => !d) : undefined
+                aria-sort={
+                  column.sortValue
+                    ? sortDesc
+                      ? "descending"
+                      : "ascending"
+                    : undefined
                 }
               >
-                {column.sortValue
-                  ? `${column.header} ${sortDesc ? "↓" : "↑"}`
-                  : column.header}
+                {column.sortValue ? (
+                  <button
+                    type="button"
+                    onClick={() => setSortDesc((d) => !d)}
+                    style={{
+                      all: "unset",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {`${column.header} ${sortDesc ? "↓" : "↑"}`}
+                  </button>
+                ) : (
+                  column.header
+                )}
               </TableHeadCell>
             ))}
           </TableRow>
         </TableHead>
         <TableBody>
-          {rows.map((item) => (
-            <TableRow
-              key={getId(item)}
-              interactive
-              onClick={() => openEdit(item)}
-            >
-              {columns.map((column) => (
-                <TableCell key={column.header} align={column.align}>
-                  {column.cell(item)}
-                </TableCell>
-              ))}
+          {isError && (
+            <TableRow>
+              <TableCell colSpan={columns.length}>
+                목록을 불러오지 못했어요
+              </TableCell>
             </TableRow>
-          ))}
+          )}
+          {!isError &&
+            rows.map((item) => (
+              <TableRow
+                key={getId(item)}
+                interactive
+                onClick={() => openEdit(item)}
+              >
+                {columns.map((column) => (
+                  <TableCell key={column.header} align={column.align}>
+                    {column.cell(item)}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
         </TableBody>
       </Table>
 
@@ -188,7 +229,9 @@ export function AdminCrudTable<T>({
                   variant="criticalSolid"
                   size="large"
                   className="w-full"
-                  onClick={() => deleteMutation.mutate(getId(editing))}
+                  loading={deleteMutation.isPending}
+                  disabled={deleteMutation.isPending}
+                  onClick={() => setConfirmDelete(true)}
                 >
                   삭제
                 </ActionButton>
@@ -197,6 +240,36 @@ export function AdminCrudTable<T>({
           </SidePanelFooter>
         </SidePanelContent>
       </SidePanelRoot>
+
+      <AlertDialogRoot open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>정말 삭제할까요?</AlertDialogTitle>
+            <AlertDialogDescription>
+              이 작업은 되돌릴 수 없어요.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <ResponsivePair gap="x2">
+              <AlertDialogAction
+                variant="neutralWeak"
+                onClick={() => setConfirmDelete(false)}
+              >
+                취소
+              </AlertDialogAction>
+              <AlertDialogAction
+                variant="criticalSolid"
+                onClick={() => {
+                  setConfirmDelete(false);
+                  if (editing) deleteMutation.mutate(getId(editing));
+                }}
+              >
+                삭제
+              </AlertDialogAction>
+            </ResponsivePair>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialogRoot>
     </VStack>
   );
 }
