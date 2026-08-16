@@ -5,6 +5,7 @@ import {
   getInvestorCounts,
   getTeamInvestmentTotals,
 } from "@/entities/investment";
+import { requireAdmin } from "@/entities/staff/model/session";
 import { listTeams, type Team } from "@/entities/team";
 
 export interface AdminTeamRow {
@@ -17,6 +18,7 @@ export interface AdminTeamRow {
 // One query per aggregate (not per team) — teams.length no longer
 // multiplies the number of round trips to Supabase.
 export async function listAdminTeamRows(): Promise<AdminTeamRow[]> {
+  await requireAdmin();
   const [teams, totals, investorCounts, booths] = await Promise.all([
     listTeams(),
     getTeamInvestmentTotals(),
