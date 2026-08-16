@@ -13,7 +13,6 @@ import {
   VStack,
 } from "@seed-design/react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import { IconKakaoTalk } from "seed-design/icon/icon-kakaotalk";
 import { ActionButton } from "seed-design/ui/action-button";
 import { Avatar, AvatarStack } from "seed-design/ui/avatar";
@@ -22,7 +21,6 @@ import { Snackbar, useSnackbarAdapter } from "seed-design/ui/snackbar";
 import { type Booth, formatBoothLocation } from "@/entities/booth/model/pure";
 import type { Participant } from "@/entities/participant";
 import type { CurrentUser } from "@/entities/session";
-import { getCurrentStaff } from "@/entities/staff/model/pure";
 import type { Team } from "@/entities/team";
 import { InvestButton } from "@/features/invest-in-team";
 import { PageHeader } from "@/shared/ui/page-header";
@@ -37,6 +35,7 @@ export function TeamShowcase({
   amount,
   members,
   currentUser,
+  isJudge,
 }: {
   team: Team;
   booth: Booth | null;
@@ -45,14 +44,9 @@ export function TeamShowcase({
   amount: number;
   members: Participant[];
   currentUser: CurrentUser | null;
+  isJudge: boolean;
 }) {
   const adapter = useSnackbarAdapter();
-  // getCurrentStaff() is client-only module state, invisible during SSR —
-  // check after mount so the server-rendered markup doesn't mismatch it.
-  const [isJudge, setIsJudge] = useState(false);
-  useEffect(() => {
-    setIsJudge(getCurrentStaff()?.role === "judge");
-  }, []);
 
   const shareStub = () => {
     adapter.create({

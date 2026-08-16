@@ -6,9 +6,11 @@ import {
 } from "@/entities/investment";
 import { listInvestors } from "@/entities/investor";
 import { getScoreLeaderboard } from "@/entities/score";
+import { requireAdmin } from "@/entities/staff/model/session";
 import { listTeams } from "@/entities/team";
 
 export async function getDashboardStats() {
+  await requireAdmin();
   const [totals, teams, investors, scoreLeaderboard, investorCounts] =
     await Promise.all([
       getTeamInvestmentTotals(),

@@ -1,5 +1,7 @@
 "use server";
 
+import { getCurrentUser } from "@/entities/session/model/session";
+import { getCurrentStaff, requireAdmin } from "@/entities/staff/model/session";
 import { createAdminClient } from "@/shared/lib/supabase/admin";
 
 export interface TeamWriteInput {
@@ -13,9 +15,34 @@ export interface TeamWriteInput {
 
 const TEAM_ASSETS_BUCKET = "team-assets";
 
+// Admin (manage-team-form) or any logged-in participant (their own team's
+// edit-team-profile-form) may upload — this action has no team context of
+// its own, so it can only rule out fully anonymous callers, not verify
+// ownership of a specific team (updateTeamAction does that check itself).
+async function requireStaffOrParticipant(): Promise<void> {
+  const [staff, user] = await Promise.all([
+    getCurrentStaff(),
+    getCurrentUser(),
+  ]);
+  if (staff?.role === "admin") return;
+  if (user?.kind === "participant") return;
+  throw new Error("권한이 없어요");
+}
+
+async function requireAdminOrTeamOwner(teamId: string): Promise<void> {
+  const [staff, user] = await Promise.all([
+    getCurrentStaff(),
+    getCurrentUser(),
+  ]);
+  if (staff?.role === "admin") return;
+  if (user?.kind === "participant" && user.teamId === teamId) return;
+  throw new Error("권한이 없어요");
+}
+
 export async function uploadTeamImageAction(
   formData: FormData,
 ): Promise<string> {
+  await requireStaffOrParticipant();
   const file = formData.get("file");
   if (!(file instanceof File)) throw new Error("파일이 없어요");
 
@@ -34,6 +61,7 @@ export async function uploadTeamImageAction(
 }
 
 export async function createTeamAction(input: TeamWriteInput): Promise<string> {
+  await requireAdmin();
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("teams")
@@ -55,6 +83,7 @@ export async function updateTeamAction(
   id: string,
   input: TeamWriteInput,
 ): Promise<void> {
+  await requireAdminOrTeamOwner(id);
   const supabase = createAdminClient();
   const { error } = await supabase
     .from("teams")
@@ -71,6 +100,7 @@ export async function updateTeamAction(
 }
 
 export async function deleteTeamAction(id: string): Promise<void> {
+  await requireAdmin();
   const supabase = createAdminClient();
   const { error } = await supabase.from("teams").delete().eq("id", id);
   if (error) throw new Error(error.message);

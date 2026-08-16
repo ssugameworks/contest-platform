@@ -8,7 +8,6 @@ import { ActionButton } from "seed-design/ui/action-button";
 import { Snackbar, useSnackbarAdapter } from "seed-design/ui/snackbar";
 import { TextField, TextFieldInput } from "seed-design/ui/text-field";
 import { findStaffByIdAction } from "@/entities/staff/model/actions";
-import { setCurrentStaff } from "@/entities/staff/model/pure";
 import { type AdminLoginInput, adminLoginSchema } from "../model/schema";
 
 export function AdminLoginForm() {
@@ -36,7 +35,6 @@ export function AdminLoginForm() {
         />
       ),
     });
-    setCurrentStaff(staff);
     router.push(
       staff.role === "admin" ? "/admin/dashboard" : "/judge/dashboard",
     );

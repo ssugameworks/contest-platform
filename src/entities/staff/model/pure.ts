@@ -7,13 +7,3 @@ export interface Staff {
   name: string;
   role: StaffRole;
 }
-
-let currentStaff: Staff | null = null;
-
-export function setCurrentStaff(staff: Staff | null): void {
-  currentStaff = staff;
-}
-
-export function getCurrentStaff(): Staff | null {
-  return currentStaff;
-}

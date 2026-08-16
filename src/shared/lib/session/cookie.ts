@@ -2,6 +2,10 @@ import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 export const SESSION_COOKIE_NAME = "session";
+// Separate cookie/name from participant/investor sessions — staff is a
+// different actor type, and a browser could plausibly hold both (e.g. an
+// organizer testing the participant flow while also logged in as admin).
+export const STAFF_SESSION_COOKIE_NAME = "staff_session";
 export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30; // 30 days
 
 function base64url(input: Buffer | string): string {
