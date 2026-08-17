@@ -77,6 +77,12 @@ export function ManageParticipantForm({
       await queryClient.invalidateQueries({
         queryKey: ["admin-participants"],
       });
+      adapter.create({
+        onClose: () => {},
+        render: () => (
+          <Snackbar variant="positive" message="성공적으로 저장했어요" />
+        ),
+      });
       onSaved();
     } catch (error) {
       adapter.create({

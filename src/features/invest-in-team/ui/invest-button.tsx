@@ -15,7 +15,11 @@ import {
   BottomSheetRoot,
   BottomSheetTrigger,
 } from "seed-design/ui/bottom-sheet";
-import { Snackbar, useSnackbarAdapter } from "seed-design/ui/snackbar";
+import {
+  Snackbar,
+  SnackbarAvoidOverlap,
+  useSnackbarAdapter,
+} from "seed-design/ui/snackbar";
 import { TextField, TextFieldInput } from "seed-design/ui/text-field";
 import { getTradeContextAction, placeTradeAction } from "../model/actions";
 import {
@@ -241,17 +245,19 @@ export function InvestButton({
             </VStack>
           </form>
         </BottomSheetBody>
-        <BottomSheetFooter>
-          <ActionButton
-            type="submit"
-            form="trade-form"
-            variant={tradeType === "buy" ? "brandSolid" : "criticalSolid"}
-            className="w-full"
-            loading={tradeMutation.isPending}
-          >
-            {tradeType === "buy" ? "매수 확정" : "매도 확정"}
-          </ActionButton>
-        </BottomSheetFooter>
+        <SnackbarAvoidOverlap>
+          <BottomSheetFooter>
+            <ActionButton
+              type="submit"
+              form="trade-form"
+              variant={tradeType === "buy" ? "brandSolid" : "criticalSolid"}
+              className="w-full"
+              loading={tradeMutation.isPending}
+            >
+              {tradeType === "buy" ? "매수 확정" : "매도 확정"}
+            </ActionButton>
+          </BottomSheetFooter>
+        </SnackbarAvoidOverlap>
       </BottomSheetContent>
     </BottomSheetRoot>
   );

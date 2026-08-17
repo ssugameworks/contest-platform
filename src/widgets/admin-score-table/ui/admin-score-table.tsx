@@ -3,6 +3,7 @@
 import { Text, VStack } from "@seed-design/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { Snackbar, useSnackbarAdapter } from "seed-design/ui/snackbar";
 import { TextField, TextFieldInput } from "seed-design/ui/text-field";
 import {
   getInvestmentWeightAction,
@@ -50,6 +51,7 @@ function JudgeCell({
 
 export function AdminScoreTable() {
   const queryClient = useQueryClient();
+  const adapter = useSnackbarAdapter();
   const [sortKey, setSortKey] = useState<SortKey>("finalScore");
   const [sortDesc, setSortDesc] = useState(true);
 
@@ -110,9 +112,31 @@ export function AdminScoreTable() {
           }
           onBlur={async () => {
             if (weightInput === weight) return;
-            await setInvestmentWeightAction(weightInput);
+            try {
+              await setInvestmentWeightAction(weightInput);
+            } catch (error) {
+              adapter.create({
+                onClose: () => {},
+                render: () => (
+                  <Snackbar
+                    message={
+                      error instanceof Error
+                        ? error.message
+                        : "저장에 실패했어요"
+                    }
+                  />
+                ),
+              });
+              return;
+            }
             queryClient.invalidateQueries({ queryKey: ["investment-weight"] });
             queryClient.invalidateQueries({ queryKey: ["score-leaderboard"] });
+            adapter.create({
+              onClose: () => {},
+              render: () => (
+                <Snackbar variant="positive" message="성공적으로 저장했어요" />
+              ),
+            });
           }}
         />
       </TextField>

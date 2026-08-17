@@ -25,7 +25,11 @@ import {
   SidePanelFooter,
   SidePanelRoot,
 } from "seed-design/ui/side-panel";
-import { Snackbar, useSnackbarAdapter } from "seed-design/ui/snackbar";
+import {
+  Snackbar,
+  SnackbarAvoidOverlap,
+  useSnackbarAdapter,
+} from "seed-design/ui/snackbar";
 import { TextField, TextFieldInput } from "seed-design/ui/text-field";
 import {
   Table,
@@ -90,6 +94,10 @@ export function AdminCrudTable<T>({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
       setOpen(false);
+      adapter.create({
+        onClose: () => {},
+        render: () => <Snackbar variant="positive" message="삭제했어요" />,
+      });
     },
     onError: (error) => {
       adapter.create({
@@ -215,32 +223,34 @@ export function AdminCrudTable<T>({
               </Box>
             </ScrollFog>
           </SidePanelBody>
-          <SidePanelFooter>
-            <VStack gap="x2" width="full">
-              <ActionButton
-                type="submit"
-                form={formId}
-                variant="brandSolid"
-                size="large"
-                className="w-full"
-              >
-                저장
-              </ActionButton>
-              {editing && (
+          <SnackbarAvoidOverlap>
+            <SidePanelFooter>
+              <VStack gap="x2" width="full">
                 <ActionButton
-                  type="button"
-                  variant="criticalSolid"
+                  type="submit"
+                  form={formId}
+                  variant="brandSolid"
                   size="large"
                   className="w-full"
-                  loading={deleteMutation.isPending}
-                  disabled={deleteMutation.isPending}
-                  onClick={() => setConfirmDelete(true)}
                 >
-                  삭제
+                  저장
                 </ActionButton>
-              )}
-            </VStack>
-          </SidePanelFooter>
+                {editing && (
+                  <ActionButton
+                    type="button"
+                    variant="criticalSolid"
+                    size="large"
+                    className="w-full"
+                    loading={deleteMutation.isPending}
+                    disabled={deleteMutation.isPending}
+                    onClick={() => setConfirmDelete(true)}
+                  >
+                    삭제
+                  </ActionButton>
+                )}
+              </VStack>
+            </SidePanelFooter>
+          </SnackbarAvoidOverlap>
         </SidePanelContent>
       </SidePanelRoot>
 

@@ -10,6 +10,7 @@ import {
   BottomSheetFooter,
   BottomSheetRoot,
 } from "seed-design/ui/bottom-sheet";
+import { SnackbarAvoidOverlap } from "seed-design/ui/snackbar";
 import { getBoothByTeamIdAction } from "@/entities/booth/model/actions";
 import { formatBoothLocation } from "@/entities/booth/model/pure";
 import { listEvaluationsAction } from "@/entities/score/model/actions";
@@ -126,24 +127,26 @@ export function JudgeTeamList({ judgeId }: { judgeId: string }) {
             </Box>
           </BottomSheetBody>
           {activeTeam && (
-            <BottomSheetFooter>
-              <HStack
-                gap="x2"
-                width="full"
-                justify="space-between"
-                align="center"
-              >
-                <Text textStyle="t6Bold">{`총점 ${liveTotal}점`}</Text>
-                <ActionButton
-                  type="button"
-                  variant="brandSolid"
-                  size="large"
-                  onClick={() => formRef.current?.save()}
+            <SnackbarAvoidOverlap>
+              <BottomSheetFooter>
+                <HStack
+                  gap="x2"
+                  width="full"
+                  justify="space-between"
+                  align="center"
                 >
-                  저장
-                </ActionButton>
-              </HStack>
-            </BottomSheetFooter>
+                  <Text textStyle="t6Bold">{`총점 ${liveTotal}점`}</Text>
+                  <ActionButton
+                    type="button"
+                    variant="brandSolid"
+                    size="large"
+                    onClick={() => formRef.current?.save()}
+                  >
+                    저장
+                  </ActionButton>
+                </HStack>
+              </BottomSheetFooter>
+            </SnackbarAvoidOverlap>
           )}
         </BottomSheetContent>
       </BottomSheetRoot>
