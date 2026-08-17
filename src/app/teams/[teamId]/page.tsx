@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getBoothByTeamId } from "@/entities/booth";
+import { listBooths } from "@/entities/booth";
 import {
   getInvestmentRank,
   getInvestorCount,
@@ -22,7 +22,7 @@ export default async function TeamPage({
   }
 
   const [
-    booth,
+    booths,
     { rank },
     investorCount,
     amount,
@@ -30,7 +30,7 @@ export default async function TeamPage({
     currentUser,
     staff,
   ] = await Promise.all([
-    getBoothByTeamId(team.id),
+    listBooths(),
     getInvestmentRank(team.id),
     getInvestorCount(team.id),
     getTeamInvestmentTotal(team.id),
@@ -45,7 +45,8 @@ export default async function TeamPage({
   return (
     <TeamShowcase
       team={team}
-      booth={booth}
+      booth={booths.find((b) => b.teamId === team.id) ?? null}
+      booths={booths}
       rank={rank}
       investorCount={investorCount}
       amount={amount}

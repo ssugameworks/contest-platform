@@ -7,7 +7,6 @@ import {
   Divider,
   Grid,
   HStack,
-  ImageFrame,
   ScrollFog,
   Text,
   VStack,
@@ -21,7 +20,6 @@ import { Avatar, AvatarStack } from "seed-design/ui/avatar";
 import { HelpBubbleAnchor } from "seed-design/ui/help-bubble";
 import { IdentityPlaceholder } from "seed-design/ui/identity-placeholder";
 import { Snackbar, useSnackbarAdapter } from "seed-design/ui/snackbar";
-import { listBoothsAction } from "@/entities/booth/model/actions";
 import { type Booth, formatBoothLocation } from "@/entities/booth/model/pure";
 import type { Participant } from "@/entities/participant";
 import type { CurrentUser } from "@/entities/session";
@@ -36,6 +34,7 @@ import { shareToInstagramStory } from "../model/share-to-instagram-story";
 export function TeamShowcase({
   team,
   booth,
+  booths,
   rank,
   investorCount,
   amount,
@@ -45,6 +44,7 @@ export function TeamShowcase({
 }: {
   team: Team;
   booth: Booth | null;
+  booths: Booth[];
   rank: number;
   investorCount: number;
   amount: number;
@@ -74,7 +74,6 @@ export function TeamShowcase({
   const shareStory = async () => {
     setIsSharingStory(true);
     try {
-      const booths = await listBoothsAction();
       const outcome = await shareToInstagramStory({
         teamName: team.name,
         tags: team.tags,
