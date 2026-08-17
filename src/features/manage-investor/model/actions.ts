@@ -1,10 +1,12 @@
 "use server";
 
 import { type Investor, listInvestors } from "@/entities/investor";
+import { requireAdmin } from "@/entities/staff/model/session";
 import { createAdminClient } from "@/shared/lib/supabase/admin";
 import { manageInvestorSchema } from "./schema";
 
 export async function listInvestorsAction(): Promise<Investor[]> {
+  await requireAdmin();
   return listInvestors();
 }
 
@@ -17,6 +19,7 @@ export interface InvestorWriteInput {
 export async function createInvestorAction(
   input: InvestorWriteInput,
 ): Promise<void> {
+  await requireAdmin();
   const parsed = manageInvestorSchema.parse(input);
   const supabase = createAdminClient();
   const { error } = await supabase.from("investors").insert({
@@ -31,6 +34,7 @@ export async function updateInvestorAction(
   id: string,
   input: InvestorWriteInput,
 ): Promise<void> {
+  await requireAdmin();
   const parsed = manageInvestorSchema.parse(input);
   const supabase = createAdminClient();
   const { error } = await supabase
@@ -45,6 +49,7 @@ export async function updateInvestorAction(
 }
 
 export async function deleteInvestorAction(id: string): Promise<void> {
+  await requireAdmin();
   const supabase = createAdminClient();
   const { error } = await supabase.from("investors").delete().eq("id", id);
   if (error) throw new Error(error.message);

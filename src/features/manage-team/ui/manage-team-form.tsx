@@ -84,6 +84,12 @@ export function ManageTeamForm({
       return;
     }
     await queryClient.invalidateQueries({ queryKey: ["admin-team-rows"] });
+    adapter.create({
+      onClose: () => {},
+      render: () => (
+        <Snackbar variant="positive" message="성공적으로 저장했어요" />
+      ),
+    });
     onSaved();
   });
 

@@ -60,7 +60,9 @@ export function EditTeamProfileForm({ team }: { team: Team }) {
 
     adapter.create({
       onClose: () => {},
-      render: () => <Snackbar message="저장했어요" />,
+      render: () => (
+        <Snackbar variant="positive" message="성공적으로 저장했어요" />
+      ),
     });
   });
 

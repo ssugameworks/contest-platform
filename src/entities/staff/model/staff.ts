@@ -2,7 +2,6 @@ import { createAdminClient } from "@/shared/lib/supabase/admin";
 import type { Staff, StaffRole } from "./pure";
 
 export type { Staff, StaffRole } from "./pure";
-export { getCurrentStaff, setCurrentStaff } from "./pure";
 
 // staff has no public SELECT policy (login ids/roles shouldn't be world
 // readable) — reads go through the service-role client instead.

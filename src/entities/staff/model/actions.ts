@@ -1,9 +1,26 @@
 "use server";
 
+import { cookies } from "next/headers";
+import {
+  SESSION_MAX_AGE_SECONDS,
+  STAFF_SESSION_COOKIE_NAME,
+  signSession,
+} from "@/shared/lib/session/cookie";
 import { hashPassword, verifyPassword } from "@/shared/lib/session/password";
 import { createAdminClient } from "@/shared/lib/supabase/admin";
 import type { StaffRole } from "./pure";
 import { listJudges, type Staff } from "./staff";
+
+async function setStaffSessionCookie(staffId: string): Promise<void> {
+  const store = await cookies();
+  store.set(STAFF_SESSION_COOKIE_NAME, signSession(staffId, "staff"), {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: SESSION_MAX_AGE_SECONDS,
+    path: "/",
+  });
+}
 
 export async function listJudgesAction(): Promise<Staff[]> {
   return listJudges();
@@ -55,5 +72,6 @@ export async function findStaffByIdAction(
     return null;
   }
 
+  await setStaffSessionCookie(data.id);
   return { id: data.id, name: data.name, role: data.role as StaffRole };
 }

@@ -1,7 +1,7 @@
-import { listJudges } from "@/entities/staff";
+import { requireJudge } from "@/entities/staff/model/session";
 import { JudgeDashboardClient } from "./judge-dashboard-client";
 
 export default async function JudgeDashboardPage() {
-  const judges = await listJudges();
-  return <JudgeDashboardClient fallbackJudge={judges[0] ?? null} />;
+  const staff = await requireJudge();
+  return <JudgeDashboardClient currentStaff={staff} />;
 }

@@ -1,21 +1,15 @@
 "use client";
 
 import { VStack } from "@seed-design/react";
-import { getCurrentStaff, type Staff } from "@/entities/staff/model/pure";
+import type { Staff } from "@/entities/staff/model/pure";
 import { PageHeader } from "@/shared/ui/page-header";
 import { JudgeTeamList } from "@/widgets/judge-team-list";
 
 export function JudgeDashboardClient({
-  fallbackJudge,
+  currentStaff,
 }: {
-  fallbackJudge: Staff | null;
+  currentStaff: Staff;
 }) {
-  const currentStaff = getCurrentStaff() ?? fallbackJudge;
-
-  if (!currentStaff) {
-    return null;
-  }
-
   return (
     <VStack gap="x6" width="full" px="spacingX.globalGutter" py="x6">
       <PageHeader

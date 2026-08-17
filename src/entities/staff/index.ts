@@ -1,8 +1,2 @@
 export { findStaffByIdAction, listJudgesAction } from "./model/actions";
-export {
-  getCurrentStaff,
-  listJudges,
-  type Staff,
-  type StaffRole,
-  setCurrentStaff,
-} from "./model/staff";
+export { listJudges, type Staff, type StaffRole } from "./model/staff";

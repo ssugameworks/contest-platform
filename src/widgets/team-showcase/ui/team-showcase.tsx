@@ -13,7 +13,8 @@ import {
   VStack,
 } from "@seed-design/react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { IconInstagram } from "seed-design/icon/icon-instagram";
 import { IconKakaoTalk } from "seed-design/icon/icon-kakaotalk";
 import { ActionButton } from "seed-design/ui/action-button";
 import { Avatar, AvatarStack } from "seed-design/ui/avatar";
@@ -22,12 +23,12 @@ import { Snackbar, useSnackbarAdapter } from "seed-design/ui/snackbar";
 import { type Booth, formatBoothLocation } from "@/entities/booth/model/pure";
 import type { Participant } from "@/entities/participant";
 import type { CurrentUser } from "@/entities/session";
-import { getCurrentStaff } from "@/entities/staff/model/pure";
 import type { Team } from "@/entities/team";
 import { InvestButton } from "@/features/invest-in-team";
 import { PageHeader } from "@/shared/ui/page-header";
 import { StatCard } from "@/shared/ui/stat-card";
 import { InvestmentTransactions } from "@/widgets/investment-transactions";
+import { shareToInstagramStory } from "../model/share-to-instagram-story";
 
 export function TeamShowcase({
   team,
@@ -37,6 +38,7 @@ export function TeamShowcase({
   amount,
   members,
   currentUser,
+  isJudge,
 }: {
   team: Team;
   booth: Booth | null;
@@ -45,14 +47,10 @@ export function TeamShowcase({
   amount: number;
   members: Participant[];
   currentUser: CurrentUser | null;
+  isJudge: boolean;
 }) {
   const adapter = useSnackbarAdapter();
-  // getCurrentStaff() is client-only module state, invisible during SSR —
-  // check after mount so the server-rendered markup doesn't mismatch it.
-  const [isJudge, setIsJudge] = useState(false);
-  useEffect(() => {
-    setIsJudge(getCurrentStaff()?.role === "judge");
-  }, []);
+  const [isSharingStory, setIsSharingStory] = useState(false);
 
   const shareStub = () => {
     adapter.create({
@@ -69,9 +67,39 @@ export function TeamShowcase({
     });
   };
 
+  const shareStory = async () => {
+    setIsSharingStory(true);
+    try {
+      const outcome = await shareToInstagramStory({
+        teamName: team.name,
+        tags: team.tags,
+        description: team.description,
+        logoUrl: team.imageUrl,
+        url: window.location.href,
+      });
+      if (outcome === "downloaded") {
+        adapter.create({
+          onClose: () => {},
+          render: () => (
+            <Snackbar message="스토리 이미지를 저장했어요. 인스타그램에서 직접 올려주세요" />
+          ),
+        });
+      }
+    } catch (error) {
+      // 사용자가 공유 시트를 취소한 경우(AbortError)는 실패가 아니에요.
+      if (error instanceof Error && error.name === "AbortError") return;
+      adapter.create({
+        onClose: () => {},
+        render: () => <Snackbar message="스토리 공유에 실패했어요" />,
+      });
+    } finally {
+      setIsSharingStory(false);
+    }
+  };
+
   const bottomAction = isJudge ? null : !currentUser ? (
     <ActionButton variant="brandSolid" size="large" className="w-full" asChild>
-      <Link href="/login">로그인하고 투자하기</Link>
+      <Link href="/login">학번 입력하고 투자하기</Link>
     </ActionButton>
   ) : currentUser.kind === "investor" ? (
     <InvestButton teamId={team.id} teamName={team.name} />
@@ -131,7 +159,7 @@ export function TeamShowcase({
             <Divider />
 
             {/* 통계 */}
-            <Grid columns={{ base: 1, sm: 2, lg: 4 }} gap="x4" width="full">
+            <Grid columns={4} gap="x4" width="full">
               <StatCard label="모금액" value={`${amount.toLocaleString()}원`} />
               <StatCard label="투자자 수" value={`${investorCount}명`} />
               <StatCard label="투자 등수" value={`${rank}위`} />
@@ -205,10 +233,18 @@ export function TeamShowcase({
             {/* 공유 */}
             <VStack gap="x3" width="full">
               <Text textStyle="t5Bold">이 팀 공유하기</Text>
-              <HStack gap="x3">
+              <HStack gap="x3" wrap>
                 <ActionButton variant="neutralWeak" onClick={shareStub}>
                   <IconKakaoTalk width={16} height={16} />
                   카카오톡 공유
+                </ActionButton>
+                <ActionButton
+                  variant="neutralWeak"
+                  onClick={shareStory}
+                  loading={isSharingStory}
+                >
+                  <IconInstagram width={16} height={16} />
+                  인스타그램 스토리
                 </ActionButton>
                 <ActionButton variant="neutralWeak" onClick={copyLink}>
                   <IconCheckmarkClipboardLine width={16} height={16} />

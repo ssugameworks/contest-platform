@@ -23,7 +23,10 @@ export type CurrentUser =
 // request only hit the DB once (React request memoization, not fetch()).
 export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const store = await cookies();
-  const studentId = verifySession(store.get(SESSION_COOKIE_NAME)?.value);
+  const studentId = verifySession(
+    store.get(SESSION_COOKIE_NAME)?.value,
+    "user",
+  );
   if (!studentId) return null;
 
   const supabase = createAdminClient();

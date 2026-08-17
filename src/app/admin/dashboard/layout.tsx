@@ -7,6 +7,7 @@ import {
 } from "@karrotmarket/react-monochrome-icon";
 import { Box } from "@seed-design/react";
 import type { Metadata } from "next";
+import { requireAdmin } from "@/entities/staff/model/session";
 import { Logo } from "@/shared/ui/logo";
 import { DashboardSideNav } from "@/widgets/dashboard-sidenav";
 
@@ -36,9 +37,10 @@ const NAV_ITEMS = [
   },
 ];
 
-export default function AdminDashboardLayout({
+export default async function AdminDashboardLayout({
   children,
 }: LayoutProps<"/admin/dashboard">) {
+  await requireAdmin();
   return (
     <DashboardSideNav
       navItems={NAV_ITEMS}

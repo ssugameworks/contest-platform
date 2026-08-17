@@ -1,16 +1,35 @@
 "use client";
 
-import { Box, HStack, ScrollFog, VStack } from "@seed-design/react";
+import {
+  Box,
+  HStack,
+  ResponsivePair,
+  ScrollFog,
+  VStack,
+} from "@seed-design/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type ReactNode, useMemo, useState } from "react";
 import { ActionButton } from "seed-design/ui/action-button";
+import {
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogRoot,
+  AlertDialogTitle,
+} from "seed-design/ui/alert-dialog";
 import {
   SidePanelBody,
   SidePanelContent,
   SidePanelFooter,
   SidePanelRoot,
 } from "seed-design/ui/side-panel";
-import { Snackbar, useSnackbarAdapter } from "seed-design/ui/snackbar";
+import {
+  Snackbar,
+  SnackbarAvoidOverlap,
+  useSnackbarAdapter,
+} from "seed-design/ui/snackbar";
 import { TextField, TextFieldInput } from "seed-design/ui/text-field";
 import {
   Table,
@@ -66,14 +85,19 @@ export function AdminCrudTable<T>({
   const [sortDesc, setSortDesc] = useState(defaultSortDesc);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<T | undefined>(undefined);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const { data: items = [] } = useQuery({ queryKey, queryFn });
+  const { data: items = [], isError } = useQuery({ queryKey, queryFn });
 
   const deleteMutation = useMutation({
     mutationFn: deleteAction,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
       setOpen(false);
+      adapter.create({
+        onClose: () => {},
+        render: () => <Snackbar variant="positive" message="삭제했어요" />,
+      });
     },
     onError: (error) => {
       adapter.create({
@@ -96,10 +120,12 @@ export function AdminCrudTable<T>({
 
   const openCreate = () => {
     setEditing(undefined);
+    setConfirmDelete(false);
     setOpen(true);
   };
   const openEdit = (item: T) => {
     setEditing(item);
+    setConfirmDelete(false);
     setOpen(true);
   };
   const refresh = () => {
@@ -134,18 +160,44 @@ export function AdminCrudTable<T>({
               <TableHeadCell
                 key={column.header}
                 align={column.align}
-                onClick={
-                  column.sortValue ? () => setSortDesc((d) => !d) : undefined
+                aria-sort={
+                  column.sortValue
+                    ? sortDesc
+                      ? "descending"
+                      : "ascending"
+                    : undefined
                 }
               >
-                {column.sortValue
-                  ? `${column.header} ${sortDesc ? "↓" : "↑"}`
-                  : column.header}
+                {column.sortValue ? (
+                  <button
+                    type="button"
+                    onClick={() => setSortDesc((d) => !d)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      padding: 0,
+                      font: "inherit",
+                      color: "inherit",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {`${column.header} ${sortDesc ? "↓" : "↑"}`}
+                  </button>
+                ) : (
+                  column.header
+                )}
               </TableHeadCell>
             ))}
           </TableRow>
         </TableHead>
         <TableBody>
+          {isError && rows.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={columns.length}>
+                목록을 불러오지 못했어요
+              </TableCell>
+            </TableRow>
+          )}
           {rows.map((item) => (
             <TableRow
               key={getId(item)}
@@ -171,32 +223,66 @@ export function AdminCrudTable<T>({
               </Box>
             </ScrollFog>
           </SidePanelBody>
-          <SidePanelFooter>
-            <VStack gap="x2" width="full">
-              <ActionButton
-                type="submit"
-                form={formId}
-                variant="brandSolid"
-                size="large"
-                className="w-full"
-              >
-                저장
-              </ActionButton>
-              {editing && (
+          <SnackbarAvoidOverlap>
+            <SidePanelFooter>
+              <VStack gap="x2" width="full">
                 <ActionButton
-                  type="button"
-                  variant="criticalSolid"
+                  type="submit"
+                  form={formId}
+                  variant="brandSolid"
                   size="large"
                   className="w-full"
-                  onClick={() => deleteMutation.mutate(getId(editing))}
                 >
-                  삭제
+                  저장
                 </ActionButton>
-              )}
-            </VStack>
-          </SidePanelFooter>
+                {editing && (
+                  <ActionButton
+                    type="button"
+                    variant="criticalSolid"
+                    size="large"
+                    className="w-full"
+                    loading={deleteMutation.isPending}
+                    disabled={deleteMutation.isPending}
+                    onClick={() => setConfirmDelete(true)}
+                  >
+                    삭제
+                  </ActionButton>
+                )}
+              </VStack>
+            </SidePanelFooter>
+          </SnackbarAvoidOverlap>
         </SidePanelContent>
       </SidePanelRoot>
+
+      <AlertDialogRoot open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>정말 삭제할까요?</AlertDialogTitle>
+            <AlertDialogDescription>
+              이 작업은 되돌릴 수 없어요.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <ResponsivePair gap="x2">
+              <AlertDialogAction
+                variant="neutralWeak"
+                onClick={() => setConfirmDelete(false)}
+              >
+                취소
+              </AlertDialogAction>
+              <AlertDialogAction
+                variant="criticalSolid"
+                onClick={() => {
+                  setConfirmDelete(false);
+                  if (editing) deleteMutation.mutate(getId(editing));
+                }}
+              >
+                삭제
+              </AlertDialogAction>
+            </ResponsivePair>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialogRoot>
     </VStack>
   );
 }

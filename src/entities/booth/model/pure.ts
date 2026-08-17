@@ -7,5 +7,5 @@ export interface Booth {
 }
 
 export function formatBoothLocation(booth: Booth): string {
-  return `${booth.zone}존 ${booth.number}번 부스`;
+  return `${booth.zone}-${booth.number}`;
 }
