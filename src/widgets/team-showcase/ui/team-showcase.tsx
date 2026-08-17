@@ -159,7 +159,7 @@ export function TeamShowcase({
             <Divider />
 
             {/* 통계 */}
-            <Grid columns={{ base: 1, sm: 2, lg: 4 }} gap="x4" width="full">
+            <Grid columns={4} gap="x4" width="full">
               <StatCard label="모금액" value={`${amount.toLocaleString()}원`} />
               <StatCard label="투자자 수" value={`${investorCount}명`} />
               <StatCard label="투자 등수" value={`${rank}위`} />
