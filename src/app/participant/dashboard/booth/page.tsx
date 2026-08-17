@@ -4,6 +4,7 @@ import {
   getBoothByTeamId,
   listBooths,
 } from "@/entities/booth";
+import { listBoothMarkers } from "@/entities/booth/model/booth";
 import { BoothFloorPlan } from "@/entities/booth/ui/booth-floor-plan";
 import { requireParticipantTeamId } from "@/entities/session/model/session";
 import { listTeams } from "@/entities/team";
@@ -12,9 +13,10 @@ import { StatCard } from "@/shared/ui/stat-card";
 
 export default async function DashboardBoothPage() {
   const teamId = await requireParticipantTeamId();
-  const [booth, booths, teams] = await Promise.all([
+  const [booth, booths, markers, teams] = await Promise.all([
     getBoothByTeamId(teamId),
     listBooths(),
+    listBoothMarkers(),
     listTeams(),
   ]);
 
@@ -27,7 +29,12 @@ export default async function DashboardBoothPage() {
           value={booth ? formatBoothLocation(booth) : "-"}
         />
       </Grid>
-      <BoothFloorPlan booths={booths} teams={teams} highlightTeamId={teamId} />
+      <BoothFloorPlan
+        booths={booths}
+        teams={teams}
+        markers={markers}
+        highlightTeamId={teamId}
+      />
     </VStack>
   );
 }

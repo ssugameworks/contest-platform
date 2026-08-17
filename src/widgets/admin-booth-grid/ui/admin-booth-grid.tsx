@@ -31,20 +31,29 @@ import { Snackbar, useSnackbarAdapter } from "seed-design/ui/snackbar";
 import { TextField, TextFieldInput } from "seed-design/ui/text-field";
 import {
   getBoothMatrixConfigAction,
+  listBoothMarkersAction,
   listBoothsAction,
 } from "@/entities/booth/model/actions";
-import { type Booth, formatBoothLocation } from "@/entities/booth/model/pure";
+import {
+  BOOTH_MARKER_KINDS,
+  type Booth,
+  type BoothMarkerKind,
+  formatBoothLocation,
+} from "@/entities/booth/model/pure";
+import { BOOTH_MARKER_META } from "@/entities/booth/ui/booth-marker-meta";
 import { listTeamsAction } from "@/entities/team/model/actions";
 import {
   assignTeamToBoothAction,
   createBoothAction,
   deleteBoothAction,
   setBoothBlockedAction,
+  setBoothMarkerAction,
   setBoothMatrixConfigAction,
 } from "@/features/manage-booths/model/actions";
 
 const UNASSIGNED = "__unassigned__";
 const BOOTHS_QUERY_KEY = ["admin-booths"];
+const MARKERS_QUERY_KEY = ["booth-markers"];
 const MATRIX_CONFIG_QUERY_KEY = ["admin-booth-matrix-config"];
 const CELL_MIN_SIZE = 36;
 const CELL_MAX_SIZE = 64;
@@ -110,10 +119,16 @@ export function AdminBoothGrid() {
   const [editMode, setEditMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
+  const [selectedMarkerKind, setSelectedMarkerKind] =
+    useState<BoothMarkerKind | null>(null);
 
   const { data: booths = [] } = useQuery({
     queryKey: BOOTHS_QUERY_KEY,
     queryFn: listBoothsAction,
+  });
+  const { data: markers = [] } = useQuery({
+    queryKey: MARKERS_QUERY_KEY,
+    queryFn: listBoothMarkersAction,
   });
   const { data: teams = [] } = useQuery({
     queryKey: ["teams"],
@@ -194,6 +209,21 @@ export function AdminBoothGrid() {
     onError: showError,
   });
 
+  const markerMutation = useMutation({
+    mutationFn: ({
+      zone,
+      number,
+      kind,
+    }: {
+      zone: string;
+      number: number;
+      kind: BoothMarkerKind | null;
+    }) => setBoothMarkerAction(zone, number, kind),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: MARKERS_QUERY_KEY }),
+    onError: showError,
+  });
+
   const bulkDeleteMutation = useMutation({
     mutationFn: (ids: string[]) =>
       Promise.all(ids.map((id) => deleteBoothAction(id))),
@@ -212,6 +242,23 @@ export function AdminBoothGrid() {
     const existing = booths.find(
       (booth) => booth.zone === zone && booth.number === number,
     );
+    if (selectedMarkerKind) {
+      // 팀이 배정된 자리에만 마커를 못 놓아요. 부스 자체가 없거나(미정),
+      // 아직 팀이 없거나(사용가능), 애초에 못 쓰는 자리(막힘)엔 놓을 수
+      // 있어요 — 특히 "막힌 자리"는 기둥/계단 같은 게 실제로 있는 자리라
+      // 마커를 놓기에 오히려 자연스러워요. 같은 종류를 다시 누르면 치우는
+      // 토글이에요.
+      if (existing?.teamId) return;
+      const marker = markers.find(
+        (m) => m.zone === zone && m.number === number,
+      );
+      markerMutation.mutate({
+        zone,
+        number,
+        kind: marker?.kind === selectedMarkerKind ? null : selectedMarkerKind,
+      });
+      return;
+    }
     if (editMode) {
       // 편집 모드에선 클릭이 즉시 만들기/열기가 아니라 일괄 삭제용 선택
       // 토글이에요. 아직 없는 자리는 선택할 게 없어서 무시해요.
@@ -352,6 +399,32 @@ export function AdminBoothGrid() {
         ))}
       </HStack>
 
+      <HStack gap="x2" align="center" wrap>
+        <Text textStyle="t3Regular" color="fg.neutralSubtle">
+          마커
+        </Text>
+        {BOOTH_MARKER_KINDS.map((kind) => {
+          const { label, Icon } = BOOTH_MARKER_META[kind];
+          const active = selectedMarkerKind === kind;
+          return (
+            <ActionButton
+              key={kind}
+              type="button"
+              size="small"
+              variant={active ? "brandSolid" : "neutralWeak"}
+              onClick={() => {
+                setSelectedMarkerKind(active ? null : kind);
+                setEditMode(false);
+                setSelectedIds(new Set());
+              }}
+            >
+              <Icon width={14} height={14} />
+              {label}
+            </ActionButton>
+          );
+        })}
+      </HStack>
+
       <HStack gap="x3" align="center" wrap>
         <ActionButton
           type="button"
@@ -359,6 +432,7 @@ export function AdminBoothGrid() {
           onClick={() => {
             setEditMode((current) => !current);
             setSelectedIds(new Set());
+            setSelectedMarkerKind(null);
           }}
         >
           {editMode ? "편집 모드 끄기" : "편집 모드 (여러 개 선택해서 삭제)"}
@@ -422,15 +496,23 @@ export function AdminBoothGrid() {
                   : booth.teamId
                     ? "occupied"
                     : "available";
+              const marker = booth?.teamId
+                ? undefined
+                : markers.find((m) => m.zone === zone && m.number === number);
+              const markerMeta = marker
+                ? BOOTH_MARKER_META[marker.kind]
+                : undefined;
               return (
                 <button
                   key={`${zone}-${number}`}
                   type="button"
                   title={
-                    state === "occupied" && booth?.teamId
-                      ? (teams.find((team) => team.id === booth.teamId)?.name ??
-                        undefined)
-                      : undefined
+                    markerMeta
+                      ? markerMeta.label
+                      : state === "occupied" && booth?.teamId
+                        ? (teams.find((team) => team.id === booth.teamId)
+                            ?.name ?? undefined)
+                        : undefined
                   }
                   onClick={() => handleCellClick(zone, number)}
                   style={{
@@ -449,6 +531,14 @@ export function AdminBoothGrid() {
                     alignItems: "center",
                     justifyContent: "center",
                     ...cellStyle(state),
+                    ...(markerMeta
+                      ? {
+                          background: "var(--seed-color-bg-neutral-weak)",
+                          border:
+                            "1px solid var(--seed-color-stroke-neutral-weak)",
+                          color: "var(--seed-color-fg-neutral)",
+                        }
+                      : {}),
                     ...(booth && selectedIds.has(booth.id)
                       ? {
                           outline:
@@ -458,7 +548,11 @@ export function AdminBoothGrid() {
                       : {}),
                   }}
                 >
-                  {number}
+                  {markerMeta ? (
+                    <markerMeta.Icon width="60%" height="60%" />
+                  ) : (
+                    number
+                  )}
                 </button>
               );
             }),

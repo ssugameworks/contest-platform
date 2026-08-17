@@ -15,6 +15,7 @@ import {
   AttachmentField,
   AttachmentInput,
 } from "seed-design/ui/attachment-field";
+import { Snackbar, useSnackbarAdapter } from "seed-design/ui/snackbar";
 import { uploadTeamImageAction } from "../model/actions";
 
 // Same dnd-kit setup seed-design's own AttachmentInputReorderable uses
@@ -46,6 +47,7 @@ export function TeamImageUploadField({
   onUrlsChange: Dispatch<SetStateAction<string[]>>;
 }) {
   const remaining = Math.max(0, maxFiles - urls.length);
+  const adapter = useSnackbarAdapter();
 
   const handleFileAccept = (
     entries: FileEntry[],
@@ -66,8 +68,16 @@ export function TeamImageUploadField({
           helpers.updateFileEntryStatus(entry.id, { status: "success" });
           onUrlsChange((current) => [...current, url]);
         })
-        .catch(() => {
+        .catch((error) => {
           helpers.updateFileEntryStatus(entry.id, { status: "error" });
+          const message =
+            error instanceof Error && error.message
+              ? error.message
+              : "업로드에 실패했어요";
+          adapter.create({
+            onClose: () => {},
+            render: () => <Snackbar variant="critical" message={message} />,
+          });
         });
     }
   };

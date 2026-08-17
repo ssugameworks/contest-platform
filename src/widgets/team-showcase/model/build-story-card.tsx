@@ -1,6 +1,10 @@
 import { toBlob } from "html-to-image";
 import { createRoot } from "react-dom/client";
-import type { Booth } from "@/entities/booth/model/pure";
+import type {
+  Booth,
+  BoothMarker,
+  BoothMatrixConfig,
+} from "@/entities/booth/model/pure";
 import {
   STORY_CARD_HEIGHT,
   STORY_CARD_WIDTH,
@@ -17,6 +21,8 @@ export async function buildStoryCard(props: {
   logoUrl: string | null;
   participantNames: string;
   booths: Booth[];
+  markers?: BoothMarker[];
+  matrixConfig?: BoothMatrixConfig;
   teamId: string;
 }): Promise<Blob> {
   const container = document.createElement("div");

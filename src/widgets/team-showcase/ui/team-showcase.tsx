@@ -7,7 +7,6 @@ import {
   Divider,
   Grid,
   HStack,
-  ImageFrame,
   ScrollFog,
   Text,
   VStack,
@@ -21,8 +20,12 @@ import { Avatar, AvatarStack } from "seed-design/ui/avatar";
 import { HelpBubbleAnchor } from "seed-design/ui/help-bubble";
 import { IdentityPlaceholder } from "seed-design/ui/identity-placeholder";
 import { Snackbar, useSnackbarAdapter } from "seed-design/ui/snackbar";
-import { listBoothsAction } from "@/entities/booth/model/actions";
-import { type Booth, formatBoothLocation } from "@/entities/booth/model/pure";
+import {
+  type Booth,
+  type BoothMarker,
+  type BoothMatrixConfig,
+  formatBoothLocation,
+} from "@/entities/booth/model/pure";
 import type { Participant } from "@/entities/participant";
 import type { CurrentUser } from "@/entities/session";
 import type { Team } from "@/entities/team";
@@ -36,6 +39,9 @@ import { shareToInstagramStory } from "../model/share-to-instagram-story";
 export function TeamShowcase({
   team,
   booth,
+  booths,
+  markers = [],
+  matrixConfig,
   rank,
   investorCount,
   amount,
@@ -45,6 +51,9 @@ export function TeamShowcase({
 }: {
   team: Team;
   booth: Booth | null;
+  booths: Booth[];
+  markers?: BoothMarker[];
+  matrixConfig?: BoothMatrixConfig;
   rank: number;
   investorCount: number;
   amount: number;
@@ -74,7 +83,6 @@ export function TeamShowcase({
   const shareStory = async () => {
     setIsSharingStory(true);
     try {
-      const booths = await listBoothsAction();
       const outcome = await shareToInstagramStory({
         teamName: team.name,
         tags: team.tags,
@@ -83,6 +91,8 @@ export function TeamShowcase({
         url: window.location.href,
         participantNames: members.map((member) => member.name).join(", "),
         booths,
+        markers,
+        matrixConfig,
         teamId: team.id,
       });
       if (outcome === "downloaded") {
@@ -214,21 +224,49 @@ export function TeamShowcase({
               </HStack>
             </VStack>
 
-            {/* 스크린샷 */}
+            {/* 스크린샷 — 스마트폰(세로)·데스크톱(가로) 화면비가 섞여 있어서
+                고정 비율로 잘라내는 대신, 높이만 맞추고 가로로 스크롤하는
+                갤러리로 원본 비율 그대로 보여줌 */}
             {team.screenshotUrls.length > 0 && (
               <VStack gap="x3" width="full">
                 <Text textStyle="t5Bold">제품 화면</Text>
-                <Grid columns={{ base: 1, sm: 3 }} gap="x3" width="full">
-                  {team.screenshotUrls.map((url) => (
-                    <ImageFrame
-                      key={url}
-                      src={url}
-                      alt={`${team.name} 제품 화면`}
-                      ratio={4 / 3}
-                      borderRadius="r2"
-                    />
-                  ))}
-                </Grid>
+                <ScrollFog placement={["left", "right"]}>
+                  <HStack
+                    gap="x3"
+                    style={{
+                      overflowX: "auto",
+                      scrollSnapType: "x mandatory",
+                      paddingInline: "12px",
+                    }}
+                  >
+                    {team.screenshotUrls.map((url) => (
+                      <Box
+                        key={url}
+                        borderRadius="r2"
+                        style={{
+                          flexShrink: 0,
+                          overflow: "hidden",
+                          scrollSnapAlign: "center",
+                        }}
+                      >
+                        {/* biome-ignore lint/performance/noImgElement: 스마트폰/데스크톱
+                            화면비가 섞여 있어 ImageFrame의 고정 비율 크롭을 쓸 수 없음 */}
+                        <img
+                          src={url}
+                          alt={`${team.name} 제품 화면`}
+                          style={{
+                            display: "block",
+                            height: 360,
+                            width: "auto",
+                            maxWidth: "min(80vw, 640px)",
+                            maxHeight: "60vh",
+                            objectFit: "contain",
+                          }}
+                        />
+                      </Box>
+                    ))}
+                  </HStack>
+                </ScrollFog>
               </VStack>
             )}
 

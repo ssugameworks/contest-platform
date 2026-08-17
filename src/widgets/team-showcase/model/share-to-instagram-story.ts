@@ -1,4 +1,8 @@
-import type { Booth } from "@/entities/booth/model/pure";
+import type {
+  Booth,
+  BoothMarker,
+  BoothMatrixConfig,
+} from "@/entities/booth/model/pure";
 import { buildStoryCard } from "./build-story-card";
 
 export type ShareOutcome = "share-sheet" | "downloaded";
@@ -25,6 +29,8 @@ export async function shareToInstagramStory({
   url,
   participantNames,
   booths,
+  markers = [],
+  matrixConfig,
   teamId,
 }: {
   teamName: string;
@@ -34,6 +40,8 @@ export async function shareToInstagramStory({
   url: string;
   participantNames: string;
   booths: Booth[];
+  markers?: BoothMarker[];
+  matrixConfig?: BoothMatrixConfig;
   teamId: string;
 }): Promise<ShareOutcome> {
   const blob = await buildStoryCard({
@@ -43,6 +51,8 @@ export async function shareToInstagramStory({
     logoUrl,
     participantNames,
     booths,
+    markers,
+    matrixConfig,
     teamId,
   });
 
