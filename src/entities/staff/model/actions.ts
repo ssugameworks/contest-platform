@@ -13,7 +13,7 @@ import { listJudges, type Staff } from "./staff";
 
 async function setStaffSessionCookie(staffId: string): Promise<void> {
   const store = await cookies();
-  store.set(STAFF_SESSION_COOKIE_NAME, signSession(staffId), {
+  store.set(STAFF_SESSION_COOKIE_NAME, signSession(staffId, "staff"), {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",

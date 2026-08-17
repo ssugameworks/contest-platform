@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { createClient } from "./client";
 
 export function useRealtimeRefetch(
@@ -9,13 +9,7 @@ export function useRealtimeRefetch(
   onChange: () => void,
 ) {
   const [connected, setConnected] = useState(false);
-  const onChangeRef = useRef(onChange);
-  // Kept in an effect, not written directly during render — React can
-  // discard/replay a render, and this ref is read later by an async
-  // subscription callback, not during this same render pass.
-  useEffect(() => {
-    onChangeRef.current = onChange;
-  });
+  const notifyChange = useEffectEvent(onChange);
 
   useEffect(() => {
     const supabase = createClient();
@@ -24,7 +18,7 @@ export function useRealtimeRefetch(
       channel = channel.on(
         "postgres_changes",
         { event: "*", schema: "public", table },
-        () => onChangeRef.current(),
+        () => notifyChange(),
       );
     }
     channel.subscribe((status) => setConnected(status === "SUBSCRIBED"));

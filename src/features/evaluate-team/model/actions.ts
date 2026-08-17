@@ -1,7 +1,7 @@
 "use server";
 
 import { getEvaluation, type JudgeEvaluation } from "@/entities/score";
-import { requireStaff } from "@/entities/staff/model/session";
+import { requireJudge } from "@/entities/staff/model/session";
 import { createAdminClient } from "@/shared/lib/supabase/admin";
 
 export async function getEvaluationAction(
@@ -21,10 +21,11 @@ export async function submitEvaluationAction(
     memo: string;
   },
 ): Promise<void> {
-  // judgeId must match the logged-in staff — otherwise a logged-in judge
+  // judgeId must match the logged-in judge — otherwise a logged-in judge
   // could submit scores under a different judge's id just by passing a
-  // different judgeId from the client.
-  const staff = await requireStaff();
+  // different judgeId from the client, and an admin browsing this page
+  // couldn't submit a phantom "judge" evaluation under their own staff id.
+  const staff = await requireJudge();
   if (staff.id !== judgeId) throw new Error("권한이 없어요");
 
   const supabase = createAdminClient();

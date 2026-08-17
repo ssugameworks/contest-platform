@@ -13,7 +13,10 @@ import type { Staff, StaffRole } from "./pure";
 // service-role client — same pattern as getCurrentUser for participants.
 export const getCurrentStaff = cache(async (): Promise<Staff | null> => {
   const store = await cookies();
-  const id = verifySession(store.get(STAFF_SESSION_COOKIE_NAME)?.value);
+  const id = verifySession(
+    store.get(STAFF_SESSION_COOKIE_NAME)?.value,
+    "staff",
+  );
   if (!id) return null;
 
   const supabase = createAdminClient();
@@ -40,5 +43,14 @@ export async function requireAdmin(): Promise<Staff> {
   // Logged in as staff but the wrong role (e.g. a judge) → distinct page,
   // since bouncing back to the login form would look like login failed.
   if (staff.role !== "admin") redirect("/admin/forbidden");
+  return staff;
+}
+
+// An admin browsing to /judge/dashboard and submitting a score would create
+// a phantom "judge" evaluation under the admin's own staff id, skewing the
+// leaderboard average — judge-only surfaces need this, not requireStaff().
+export async function requireJudge(): Promise<Staff> {
+  const staff = await requireStaff();
+  if (staff.role !== "judge") redirect("/admin/forbidden");
   return staff;
 }

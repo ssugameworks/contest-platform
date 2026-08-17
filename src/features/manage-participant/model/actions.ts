@@ -52,11 +52,20 @@ export async function createParticipantAction(
     await syncParticipantTeam(parsed.studentId, parsed.teamId);
   } catch (syncError) {
     // roll back the participant so a team-sync failure doesn't leave a
-    // half-created row an admin can't recreate (duplicate 학번 on retry)
-    await supabase
+    // half-created row an admin can't recreate (duplicate 학번 on retry) —
+    // but if the rollback itself fails, say so explicitly instead of
+    // silently leaving a half-created row while reporting only the
+    // original error.
+    const { error: rollbackError } = await supabase
       .from("participants")
       .delete()
       .eq("student_id", parsed.studentId);
+    if (rollbackError) {
+      throw new Error(
+        `참가자 생성이 팀 배정 단계에서 실패했고, 되돌리기도 실패했어요. ` +
+          `학번 ${parsed.studentId}이(가) 팀 없이 남아있을 수 있어요 — 직접 확인해주세요.`,
+      );
+    }
     throw syncError;
   }
 }

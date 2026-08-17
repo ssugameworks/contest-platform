@@ -165,7 +165,11 @@ export function AdminCrudTable<T>({
                     type="button"
                     onClick={() => setSortDesc((d) => !d)}
                     style={{
-                      all: "unset",
+                      background: "none",
+                      border: "none",
+                      padding: 0,
+                      font: "inherit",
+                      color: "inherit",
                       cursor: "pointer",
                     }}
                   >
@@ -179,27 +183,26 @@ export function AdminCrudTable<T>({
           </TableRow>
         </TableHead>
         <TableBody>
-          {isError && (
+          {isError && rows.length === 0 && (
             <TableRow>
               <TableCell colSpan={columns.length}>
                 목록을 불러오지 못했어요
               </TableCell>
             </TableRow>
           )}
-          {!isError &&
-            rows.map((item) => (
-              <TableRow
-                key={getId(item)}
-                interactive
-                onClick={() => openEdit(item)}
-              >
-                {columns.map((column) => (
-                  <TableCell key={column.header} align={column.align}>
-                    {column.cell(item)}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))}
+          {rows.map((item) => (
+            <TableRow
+              key={getId(item)}
+              interactive
+              onClick={() => openEdit(item)}
+            >
+              {columns.map((column) => (
+                <TableCell key={column.header} align={column.align}>
+                  {column.cell(item)}
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
         </TableBody>
       </Table>
 

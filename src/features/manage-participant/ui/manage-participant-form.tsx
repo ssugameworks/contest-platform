@@ -74,6 +74,10 @@ export function ManageParticipantForm({
       } else {
         await createParticipantAction(data);
       }
+      await queryClient.invalidateQueries({
+        queryKey: ["admin-participants"],
+      });
+      onSaved();
     } catch (error) {
       adapter.create({
         onClose: () => {},
@@ -85,12 +89,9 @@ export function ManageParticipantForm({
           />
         ),
       });
-      return;
     } finally {
       submittingRef.current = false;
     }
-    await queryClient.invalidateQueries({ queryKey: ["admin-participants"] });
-    onSaved();
   });
 
   return (

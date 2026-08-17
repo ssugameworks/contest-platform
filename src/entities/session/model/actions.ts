@@ -21,7 +21,7 @@ export type ActionResult<T = Record<never, never>> =
 
 async function setSessionCookie(studentId: string): Promise<void> {
   const store = await cookies();
-  store.set(SESSION_COOKIE_NAME, signSession(studentId), {
+  store.set(SESSION_COOKIE_NAME, signSession(studentId, "user"), {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",

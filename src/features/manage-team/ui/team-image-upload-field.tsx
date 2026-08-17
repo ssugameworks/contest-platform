@@ -1,5 +1,7 @@
 "use client";
 
+import { RestrictToHorizontalAxis } from "@dnd-kit/abstract/modifiers";
+import { Accessibility, AutoScroller } from "@dnd-kit/dom";
 import { arrayMove } from "@dnd-kit/helpers";
 import { DragDropProvider } from "@dnd-kit/react";
 import { isSortable, useSortable } from "@dnd-kit/react/sortable";
@@ -14,6 +16,20 @@ import {
   AttachmentInput,
 } from "seed-design/ui/attachment-field";
 import { uploadTeamImageAction } from "../model/actions";
+
+// Same dnd-kit setup seed-design's own AttachmentInputReorderable uses
+// (screen-reader announcements + keyboard move support) — can't reuse that
+// component directly since it manages File-backed FileEntry items end to
+// end, and these thumbnails are already-uploaded URLs, not local Files.
+const autoScrollerPlugin = AutoScroller.configure({
+  threshold: { x: 0.2, y: 0 },
+});
+const accessibilityPlugin = Accessibility.configure({
+  screenReaderInstructions: {
+    draggable:
+      "항목을 집어 항목 순서 변경을 시작하려면 스페이스 바를 누르세요. 방향키를 사용하여 순서를 변경한 뒤 스페이스 바를 다시 눌러 순서 변경을 종료하거나 Esc 키로 순서 변경을 취소할 수 있어요.",
+  },
+});
 
 // ponytail: no inline upload-progress UI — the picker just stays enabled
 // while an upload is in flight. Add a spinner/progress bar if uploads turn
@@ -64,6 +80,11 @@ export function TeamImageUploadField({
         </Field.Header>
       </Field.Root>
       <DragDropProvider
+        plugins={(defaults) => [
+          ...defaults,
+          autoScrollerPlugin,
+          accessibilityPlugin,
+        ]}
         onDragEnd={(event) => {
           const { source } = event.operation;
           if (event.canceled || !isSortable(source)) return;
@@ -112,11 +133,18 @@ function ImageThumbnail({
   index: number;
   onRemove: () => void;
 }) {
-  const { ref } = useSortable({ id: url, index });
+  const { ref } = useSortable({
+    id: url,
+    index,
+    modifiers: [RestrictToHorizontalAxis],
+    data: { name: url },
+  });
 
   return (
     <Box
       ref={ref}
+      tabIndex={0}
+      aria-roledescription="draggable"
       position="relative"
       style={{ touchAction: "none", cursor: "grab" }}
     >
@@ -144,8 +172,14 @@ function ImageThumbnail({
           height: 20,
           borderRadius: "50%",
           border: "none",
-          background: "var(--seed-color-bg-neutral-solid)",
-          color: "var(--seed-color-fg-neutral-inverted)",
+          // Same token pairing seed-design's own AttachmentInputItem remove
+          // button uses (attachment-input-item.css) — bg.layer-default is
+          // the current surface color (not an "inverted" one), so it
+          // contrasts against both the theme and an arbitrary photo
+          // underneath, in either light or dark mode.
+          background: "var(--seed-color-bg-layer-default)",
+          boxShadow: "inset 0 0 0 1px var(--seed-color-stroke-neutral-weak)",
+          color: "var(--seed-color-fg-neutral)",
           cursor: "pointer",
           lineHeight: 1,
         }}
