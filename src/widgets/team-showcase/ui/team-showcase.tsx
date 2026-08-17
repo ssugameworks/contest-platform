@@ -18,8 +18,10 @@ import { IconInstagram } from "seed-design/icon/icon-instagram";
 import { IconKakaoTalk } from "seed-design/icon/icon-kakaotalk";
 import { ActionButton } from "seed-design/ui/action-button";
 import { Avatar, AvatarStack } from "seed-design/ui/avatar";
+import { HelpBubbleAnchor } from "seed-design/ui/help-bubble";
 import { IdentityPlaceholder } from "seed-design/ui/identity-placeholder";
 import { Snackbar, useSnackbarAdapter } from "seed-design/ui/snackbar";
+import { listBoothsAction } from "@/entities/booth/model/actions";
 import { type Booth, formatBoothLocation } from "@/entities/booth/model/pure";
 import type { Participant } from "@/entities/participant";
 import type { CurrentUser } from "@/entities/session";
@@ -27,6 +29,7 @@ import type { Team } from "@/entities/team";
 import { InvestButton } from "@/features/invest-in-team";
 import { PageHeader } from "@/shared/ui/page-header";
 import { StatCard } from "@/shared/ui/stat-card";
+import { BoothFloorPlanSheet } from "@/widgets/booth-floor-plan-dialog";
 import { InvestmentTransactions } from "@/widgets/investment-transactions";
 import { shareToInstagramStory } from "../model/share-to-instagram-story";
 
@@ -51,6 +54,7 @@ export function TeamShowcase({
 }) {
   const adapter = useSnackbarAdapter();
   const [isSharingStory, setIsSharingStory] = useState(false);
+  const [floorPlanOpen, setFloorPlanOpen] = useState(false);
 
   const shareStub = () => {
     adapter.create({
@@ -70,12 +74,16 @@ export function TeamShowcase({
   const shareStory = async () => {
     setIsSharingStory(true);
     try {
+      const booths = await listBoothsAction();
       const outcome = await shareToInstagramStory({
         teamName: team.name,
         tags: team.tags,
         description: team.description,
         logoUrl: team.imageUrl,
         url: window.location.href,
+        participantNames: members.map((member) => member.name).join(", "),
+        booths,
+        teamId: team.id,
       });
       if (outcome === "downloaded") {
         adapter.create({
@@ -98,9 +106,21 @@ export function TeamShowcase({
   };
 
   const bottomAction = isJudge ? null : !currentUser ? (
-    <ActionButton variant="brandSolid" size="large" className="w-full" asChild>
-      <Link href="/login">학번 입력하고 투자하기</Link>
-    </ActionButton>
+    <HelpBubbleAnchor
+      defaultOpen
+      title="학번과 이름을 입력하고 이 팀에 투자해요"
+      placement="top"
+      closeOnInteractOutside={false}
+    >
+      <ActionButton
+        variant="brandSolid"
+        size="large"
+        className="w-full"
+        asChild
+      >
+        <Link href="/login">투자하기</Link>
+      </ActionButton>
+    </HelpBubbleAnchor>
   ) : currentUser.kind === "investor" ? (
     <InvestButton teamId={team.id} teamName={team.name} />
   ) : currentUser.teamId === team.id ? (
@@ -163,10 +183,15 @@ export function TeamShowcase({
               <StatCard label="모금액" value={`${amount.toLocaleString()}원`} />
               <StatCard label="투자자 수" value={`${investorCount}명`} />
               <StatCard label="투자 등수" value={`${rank}위`} />
-              <StatCard
-                label="부스 위치"
-                value={booth ? formatBoothLocation(booth) : "-"}
-              />
+              <Box
+                onClick={() => setFloorPlanOpen(true)}
+                style={{ cursor: "pointer" }}
+              >
+                <StatCard
+                  label="부스 위치"
+                  value={booth ? formatBoothLocation(booth) : "-"}
+                />
+              </Box>
             </Grid>
 
             <Divider />
@@ -274,6 +299,12 @@ export function TeamShowcase({
           </Box>
         </Box>
       )}
+
+      <BoothFloorPlanSheet
+        open={floorPlanOpen}
+        onOpenChange={setFloorPlanOpen}
+        highlightTeamId={team.id}
+      />
     </Box>
   );
 }
