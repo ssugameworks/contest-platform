@@ -1,8 +1,18 @@
 import { throwIfError } from "@/shared/lib/supabase/query";
 import { createClient } from "@/shared/lib/supabase/server";
-import type { Booth, BoothMatrixConfig } from "./pure";
+import type {
+  Booth,
+  BoothMarker,
+  BoothMarkerKind,
+  BoothMatrixConfig,
+} from "./pure";
 
-export type { Booth, BoothMatrixConfig } from "./pure";
+export type {
+  Booth,
+  BoothMarker,
+  BoothMarkerKind,
+  BoothMatrixConfig,
+} from "./pure";
 export { formatBoothLocation } from "./pure";
 
 export async function getBoothByTeamId(teamId: string): Promise<Booth | null> {
@@ -35,6 +45,19 @@ export async function listBooths(): Promise<Booth[]> {
     zone: booth.zone,
     number: booth.number,
     blocked: booth.blocked,
+  }));
+}
+
+export async function listBoothMarkers(): Promise<BoothMarker[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("booth_markers")
+    .select("zone, number, kind");
+  throwIfError(error);
+  return (data ?? []).map((marker) => ({
+    zone: marker.zone,
+    number: marker.number,
+    kind: marker.kind as BoothMarkerKind,
   }));
 }
 

@@ -60,6 +60,24 @@ export type Database = {
         };
         Relationships: [];
       };
+      booth_markers: {
+        Row: {
+          kind: string;
+          number: number;
+          zone: string;
+        };
+        Insert: {
+          kind: string;
+          number: number;
+          zone: string;
+        };
+        Update: {
+          kind?: string;
+          number?: number;
+          zone?: string;
+        };
+        Relationships: [];
+      };
       booths: {
         Row: {
           blocked: boolean;

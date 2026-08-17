@@ -1,5 +1,6 @@
 "use server";
 
+import type { BoothMarkerKind } from "@/entities/booth/model/pure";
 import { requireAdmin } from "@/entities/staff/model/session";
 import { createAdminClient } from "@/shared/lib/supabase/admin";
 import { createBoothSchema } from "./schema";
@@ -63,6 +64,30 @@ export async function setBoothBlockedAction(
     .from("booths")
     .update({ blocked, team_id: blocked ? null : undefined })
     .eq("id", boothId);
+  if (error) throw new Error(error.message);
+}
+
+// kind가 null이면 그 자리의 마커를 지워요. 부스와 달리 팀 배정이 없어서
+// 그냥 좌표 기준으로 있으면 바꾸고 없으면 새로 만드는 upsert면 충분해요.
+export async function setBoothMarkerAction(
+  zone: string,
+  number: number,
+  kind: BoothMarkerKind | null,
+): Promise<void> {
+  await requireAdmin();
+  const supabase = createAdminClient();
+  if (kind === null) {
+    const { error } = await supabase
+      .from("booth_markers")
+      .delete()
+      .eq("zone", zone)
+      .eq("number", number);
+    if (error) throw new Error(error.message);
+    return;
+  }
+  const { error } = await supabase
+    .from("booth_markers")
+    .upsert({ zone, number, kind }, { onConflict: "zone,number" });
   if (error) throw new Error(error.message);
 }
 

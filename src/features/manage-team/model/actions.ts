@@ -14,7 +14,7 @@ export interface TeamWriteInput {
 }
 
 const TEAM_ASSETS_BUCKET = "team-assets";
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
 // The client's <input accept> and the FormData's declared file.type are both
 // just claims from the caller — a Server Action can be called directly with
@@ -76,7 +76,7 @@ export async function uploadTeamImageAction(
   const file = formData.get("file");
   if (!(file instanceof File)) throw new Error("파일이 없어요");
   if (file.size > MAX_IMAGE_BYTES)
-    throw new Error("파일이 너무 커요 (5MB 이하)");
+    throw new Error("파일이 너무 커요 (10MB 이하)");
 
   const detectedType = await sniffImageType(file);
   if (!detectedType) throw new Error("이미지 파일만 업로드할 수 있어요");

@@ -20,3 +20,24 @@ export interface BoothMatrixConfig {
   zones: string[];
   columns: number;
 }
+
+// 팀이 아니라 시설을 나타내는 그리드 마커(안내데스크/포토존 등).
+// 부스와 좌표를 공유하되 팀 배정 개념이 없어 별도 타입으로 둬요.
+export const BOOTH_MARKER_KINDS = [
+  "info",
+  "photo",
+  "stairs",
+  "elevator",
+  "sponsor",
+  "direction",
+  "restroom",
+  "scoreboard",
+  "door",
+] as const;
+export type BoothMarkerKind = (typeof BOOTH_MARKER_KINDS)[number];
+
+export interface BoothMarker {
+  zone: string;
+  number: number;
+  kind: BoothMarkerKind;
+}
