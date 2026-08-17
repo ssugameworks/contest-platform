@@ -11,8 +11,8 @@ export function StatCard({
   extra?: ReactNode;
 }) {
   return (
-    <Box bg="bg.neutralWeak" borderRadius="r2" paddingX="x6" paddingY="x6">
-      <VStack gap="x2">
+    <Box bg="bg.neutralWeak" borderRadius="r2" paddingX="x3" paddingY="x3">
+      <VStack gap="x1">
         <Text textStyle="t3Regular" color="fg.neutralSubtle">
           {label}
         </Text>
