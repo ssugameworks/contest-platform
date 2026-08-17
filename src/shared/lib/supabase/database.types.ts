@@ -41,14 +41,20 @@ export type Database = {
     Tables: {
       app_settings: {
         Row: {
+          booth_columns: number;
+          booth_zones: string[];
           id: boolean;
           investment_percent: number;
         };
         Insert: {
+          booth_columns?: number;
+          booth_zones?: string[];
           id?: boolean;
           investment_percent?: number;
         };
         Update: {
+          booth_columns?: number;
+          booth_zones?: string[];
           id?: boolean;
           investment_percent?: number;
         };
@@ -56,32 +62,38 @@ export type Database = {
       };
       booths: {
         Row: {
+          blocked: boolean;
+          id: string;
           number: number;
-          team_id: string;
+          team_id: string | null;
           zone: string;
         };
         Insert: {
+          blocked?: boolean;
+          id?: string;
           number: number;
-          team_id: string;
+          team_id?: string | null;
           zone: string;
         };
         Update: {
+          blocked?: boolean;
+          id?: string;
           number?: number;
-          team_id?: string;
+          team_id?: string | null;
           zone?: string;
         };
         Relationships: [
           {
             foreignKeyName: "booths_team_id_fkey";
             columns: ["team_id"];
-            isOneToOne: true;
+            isOneToOne: false;
             referencedRelation: "team_investment_totals";
             referencedColumns: ["team_id"];
           },
           {
             foreignKeyName: "booths_team_id_fkey";
             columns: ["team_id"];
-            isOneToOne: true;
+            isOneToOne: false;
             referencedRelation: "teams";
             referencedColumns: ["id"];
           },
