@@ -3,6 +3,7 @@
 import { Badge, Box, HStack, Text, VStack } from "@seed-design/react";
 import { Avatar } from "seed-design/ui/avatar";
 import { IdentityPlaceholder } from "seed-design/ui/identity-placeholder";
+import { type Booth, formatBoothLocation } from "@/entities/booth/model/pure";
 
 export const STORY_CARD_WIDTH = 360;
 export const STORY_CARD_HEIGHT = 640;
@@ -16,14 +17,20 @@ export function StoryCardTemplate({
   tags,
   description,
   logoUrl,
-  linkLabel,
+  participantNames,
+  booths,
+  teamId,
 }: {
   teamName: string;
   tags: string[];
   description: string;
   logoUrl: string | null;
-  linkLabel: string;
+  participantNames: string;
+  booths: Booth[];
+  teamId: string;
 }) {
+  const myBooth = booths.find((booth) => booth.teamId === teamId);
+
   return (
     <Box
       data-seed-color-mode="dark-only"
@@ -62,13 +69,29 @@ export function StoryCardTemplate({
         </VStack>
       </VStack>
 
+      {myBooth && (
+        <Box
+          style={{
+            flex: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <MiniBoothGrid booths={booths} teamId={teamId} />
+        </Box>
+      )}
+
       <HStack justify="space-between" align="flex-end" width="full">
         <VStack gap="x1">
           <Text textStyle="t6Bold" color="fg.brand">
-            GAMEWORKS
+            {myBooth ? `부스 ${formatBoothLocation(myBooth)}` : "GAMEWORKS"}
           </Text>
           <Text textStyle="t6Regular" color="fg.neutralSubtle">
-            {linkLabel}
+            {participantNames}
+          </Text>
+          <Text textStyle="t6Bold" color="fg.neutral">
+            이 팀에 투자해보세요.
           </Text>
         </VStack>
         {logoUrl ? (
@@ -78,5 +101,47 @@ export function StoryCardTemplate({
         )}
       </HStack>
     </Box>
+  );
+}
+
+// 스토리 카드 스케일(360x640, 3배 캡처)에서는 SEED Text 토큰 하한선보다도
+// 작게 그려야 해서 공용 BoothFloorPlan을 그대로 못 씀 — 순수 div 기반의
+// 작은 점 그리드로 충분해요(칸 하나하나 이름까지 안 보여도 되고, 전체
+// 정보는 대시보드/랜딩페이지 모달에 이미 있음).
+function MiniBoothGrid({
+  booths,
+  teamId,
+}: {
+  booths: Booth[];
+  teamId: string;
+}) {
+  const visibleBooths = booths.filter((booth) => !booth.blocked);
+  const zones = [...new Set(visibleBooths.map((booth) => booth.zone))].sort();
+  return (
+    <VStack gap="x3">
+      {zones.map((zone) => (
+        <HStack key={zone} gap="x3" wrap justify="center">
+          {visibleBooths
+            .filter((booth) => booth.zone === zone)
+            .sort((a, b) => a.number - b.number)
+            .map((booth) => (
+              <div
+                key={booth.id}
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 6,
+                  background:
+                    booth.teamId === teamId
+                      ? "var(--seed-color-bg-brand-solid)"
+                      : booth.teamId
+                        ? "rgba(255, 255, 255, 0.35)"
+                        : "rgba(255, 255, 255, 0.12)",
+                }}
+              />
+            ))}
+        </HStack>
+      ))}
+    </VStack>
   );
 }

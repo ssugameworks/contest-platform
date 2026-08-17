@@ -1,3 +1,4 @@
+import type { Booth } from "@/entities/booth/model/pure";
 import { buildStoryCard } from "./build-story-card";
 
 export type ShareOutcome = "share-sheet" | "downloaded";
@@ -22,20 +23,27 @@ export async function shareToInstagramStory({
   description,
   logoUrl,
   url,
+  participantNames,
+  booths,
+  teamId,
 }: {
   teamName: string;
   tags: string[];
   description: string;
   logoUrl: string | null;
   url: string;
+  participantNames: string;
+  booths: Booth[];
+  teamId: string;
 }): Promise<ShareOutcome> {
-  const linkLabel = new URL(url).host + new URL(url).pathname;
   const blob = await buildStoryCard({
     teamName,
     tags,
     description,
     logoUrl,
-    linkLabel,
+    participantNames,
+    booths,
+    teamId,
   });
 
   const file = new File([blob], `${teamName}-story.png`, {

@@ -1,5 +1,6 @@
 import {
   IconGridFill,
+  IconMapLocationpinFill,
   IconPeople3Fill,
   IconPersonFill,
   IconTrophyFill,
@@ -34,6 +35,11 @@ const NAV_ITEMS = [
     label: "점수 관리",
     href: "/admin/dashboard/scores",
     icon: <IconTrophyFill />,
+  },
+  {
+    label: "부스 관리",
+    href: "/admin/dashboard/booths",
+    icon: <IconMapLocationpinFill />,
   },
 ];
 
