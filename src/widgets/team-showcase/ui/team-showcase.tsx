@@ -20,7 +20,12 @@ import { Avatar, AvatarStack } from "seed-design/ui/avatar";
 import { HelpBubbleAnchor } from "seed-design/ui/help-bubble";
 import { IdentityPlaceholder } from "seed-design/ui/identity-placeholder";
 import { Snackbar, useSnackbarAdapter } from "seed-design/ui/snackbar";
-import { type Booth, formatBoothLocation } from "@/entities/booth/model/pure";
+import {
+  type Booth,
+  type BoothMarker,
+  type BoothMatrixConfig,
+  formatBoothLocation,
+} from "@/entities/booth/model/pure";
 import type { Participant } from "@/entities/participant";
 import type { CurrentUser } from "@/entities/session";
 import type { Team } from "@/entities/team";
@@ -35,6 +40,8 @@ export function TeamShowcase({
   team,
   booth,
   booths,
+  markers = [],
+  matrixConfig,
   rank,
   investorCount,
   amount,
@@ -45,6 +52,8 @@ export function TeamShowcase({
   team: Team;
   booth: Booth | null;
   booths: Booth[];
+  markers?: BoothMarker[];
+  matrixConfig?: BoothMatrixConfig;
   rank: number;
   investorCount: number;
   amount: number;
@@ -82,6 +91,8 @@ export function TeamShowcase({
         url: window.location.href,
         participantNames: members.map((member) => member.name).join(", "),
         booths,
+        markers,
+        matrixConfig,
         teamId: team.id,
       });
       if (outcome === "downloaded") {

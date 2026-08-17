@@ -3,7 +3,13 @@
 import { Badge, Box, HStack, Text, VStack } from "@seed-design/react";
 import { Avatar } from "seed-design/ui/avatar";
 import { IdentityPlaceholder } from "seed-design/ui/identity-placeholder";
-import { type Booth, formatBoothLocation } from "@/entities/booth/model/pure";
+import {
+  type Booth,
+  type BoothMarker,
+  type BoothMatrixConfig,
+  formatBoothLocation,
+} from "@/entities/booth/model/pure";
+import { BOOTH_MARKER_META } from "@/entities/booth/ui/booth-marker-meta";
 
 export const STORY_CARD_WIDTH = 360;
 export const STORY_CARD_HEIGHT = 640;
@@ -19,6 +25,8 @@ export function StoryCardTemplate({
   logoUrl,
   participantNames,
   booths,
+  markers = [],
+  matrixConfig,
   teamId,
 }: {
   teamName: string;
@@ -27,6 +35,8 @@ export function StoryCardTemplate({
   logoUrl: string | null;
   participantNames: string;
   booths: Booth[];
+  markers?: BoothMarker[];
+  matrixConfig?: BoothMatrixConfig;
   teamId: string;
 }) {
   const myBooth = booths.find((booth) => booth.teamId === teamId);
@@ -78,7 +88,12 @@ export function StoryCardTemplate({
             justifyContent: "center",
           }}
         >
-          <MiniBoothGrid booths={booths} teamId={teamId} />
+          <MiniBoothGrid
+            booths={booths}
+            markers={markers}
+            matrixConfig={matrixConfig}
+            teamId={teamId}
+          />
         </Box>
       )}
 
@@ -104,44 +119,125 @@ export function StoryCardTemplate({
   );
 }
 
-// 스토리 카드 스케일(360x640, 3배 캡처)에서는 SEED Text 토큰 하한선보다도
-// 작게 그려야 해서 공용 BoothFloorPlan을 그대로 못 씀 — 순수 div 기반의
-// 작은 점 그리드로 충분해요(칸 하나하나 이름까지 안 보여도 되고, 전체
-// 정보는 대시보드/랜딩페이지 모달에 이미 있음).
+// 스토리 카드 스케일(360x640, 3배 캡처)에서는 행사장 전체 배치를 2D 행/열 매트릭스로
+// 정확히 정렬해 보여줘요. 빈 자리나 통로는 투명 셀로 자리를 유지해 행이 흐트러지지 않아요.
 function MiniBoothGrid({
   booths,
+  markers = [],
+  matrixConfig,
   teamId,
 }: {
   booths: Booth[];
+  markers?: BoothMarker[];
+  matrixConfig?: BoothMatrixConfig;
   teamId: string;
 }) {
   const visibleBooths = booths.filter((booth) => !booth.blocked);
-  const zones = [...new Set(visibleBooths.map((booth) => booth.zone))].sort();
+  const rawZones = [
+    ...new Set([
+      ...(matrixConfig?.zones ?? []),
+      ...visibleBooths.map((booth) => booth.zone),
+      ...markers.map((marker) => marker.zone),
+    ]),
+  ];
+  const zones = rawZones.sort();
+
+  const maxNumber = Math.max(
+    0,
+    ...visibleBooths.map((b) => b.number),
+    ...markers.map((m) => m.number),
+  );
+  const columns = Math.max(matrixConfig?.columns ?? 0, maxNumber, 1);
+
   return (
-    <VStack gap="x3">
-      {zones.map((zone) => (
-        <HStack key={zone} gap="x3" wrap justify="center">
-          {visibleBooths
-            .filter((booth) => booth.zone === zone)
-            .sort((a, b) => a.number - b.number)
-            .map((booth) => (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+        gap: 6,
+        width: "100%",
+        maxWidth: `${Math.min(312, columns * 32)}px`,
+      }}
+    >
+      {zones.map((zone) =>
+        Array.from({ length: columns }, (_, i) => i + 1).map((number) => {
+          const booth = visibleBooths.find(
+            (b) => b.zone === zone && b.number === number,
+          );
+          const marker = markers.find(
+            (m) => m.zone === zone && m.number === number,
+          );
+
+          if (booth?.teamId === teamId) {
+            return (
               <div
-                key={booth.id}
+                key={`${zone}-${number}`}
                 style={{
-                  width: 28,
-                  height: 28,
+                  aspectRatio: "1 / 1",
                   borderRadius: 6,
-                  background:
-                    booth.teamId === teamId
-                      ? "var(--seed-color-bg-brand-solid)"
-                      : booth.teamId
-                        ? "rgba(255, 255, 255, 0.35)"
-                        : "rgba(255, 255, 255, 0.12)",
+                  background: "var(--seed-color-bg-brand-solid)",
                 }}
               />
-            ))}
-        </HStack>
-      ))}
-    </VStack>
+            );
+          }
+
+          if (booth?.teamId) {
+            return (
+              <div
+                key={`${zone}-${number}`}
+                style={{
+                  aspectRatio: "1 / 1",
+                  borderRadius: 6,
+                  background: "rgba(255, 255, 255, 0.35)",
+                }}
+              />
+            );
+          }
+
+          if (marker) {
+            const meta = BOOTH_MARKER_META[marker.kind];
+            const Icon = meta?.Icon;
+            return (
+              <div
+                key={`${zone}-${number}`}
+                style={{
+                  aspectRatio: "1 / 1",
+                  borderRadius: 6,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: "rgba(255, 255, 255, 0.12)",
+                  color: "rgba(255, 255, 255, 0.75)",
+                }}
+              >
+                {Icon ? <Icon width="60%" height="60%" /> : null}
+              </div>
+            );
+          }
+
+          if (booth) {
+            return (
+              <div
+                key={`${zone}-${number}`}
+                style={{
+                  aspectRatio: "1 / 1",
+                  borderRadius: 6,
+                  background: "rgba(255, 255, 255, 0.12)",
+                }}
+              />
+            );
+          }
+
+          return (
+            <div
+              key={`${zone}-${number}`}
+              style={{
+                aspectRatio: "1 / 1",
+              }}
+            />
+          );
+        }),
+      )}
+    </div>
   );
 }
