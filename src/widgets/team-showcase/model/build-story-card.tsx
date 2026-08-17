@@ -1,5 +1,6 @@
 import { toBlob } from "html-to-image";
 import { createRoot } from "react-dom/client";
+import type { Booth } from "@/entities/booth/model/pure";
 import {
   STORY_CARD_HEIGHT,
   STORY_CARD_WIDTH,
@@ -14,7 +15,9 @@ export async function buildStoryCard(props: {
   tags: string[];
   description: string;
   logoUrl: string | null;
-  linkLabel: string;
+  participantNames: string;
+  booths: Booth[];
+  teamId: string;
 }): Promise<Blob> {
   const container = document.createElement("div");
   container.style.position = "fixed";
