@@ -71,6 +71,14 @@ export function loadKakaoSdk(): Promise<KakaoSdk> {
       resolve(kakao);
     };
 
+    // 로드에 실패한 script 태그는 error 이벤트가 이미 한 번 발화된 상태라,
+    // 다음 호출에서 그대로 재사용하면 새 리스너가 영영 안 불려요. 실패하면
+    // 태그 자체를 지워서 다음 호출이 새로 붙이게 해요.
+    const onError = (script: HTMLScriptElement) => () => {
+      script.remove();
+      reject(new Error("카카오 SDK 로드에 실패했어요"));
+    };
+
     const existing = document.querySelector<HTMLScriptElement>(
       `script[src="${SDK_URL}"]`,
     );
@@ -78,11 +86,7 @@ export function loadKakaoSdk(): Promise<KakaoSdk> {
       window.Kakao
         ? ready()
         : existing.addEventListener("load", ready, { once: true });
-      existing.addEventListener(
-        "error",
-        () => reject(new Error("카카오 SDK 로드에 실패했어요")),
-        { once: true },
-      );
+      existing.addEventListener("error", onError(existing), { once: true });
       return;
     }
 
@@ -90,7 +94,7 @@ export function loadKakaoSdk(): Promise<KakaoSdk> {
     script.src = SDK_URL;
     script.async = true;
     script.onload = ready;
-    script.onerror = () => reject(new Error("카카오 SDK 로드에 실패했어요"));
+    script.onerror = onError(script);
     document.head.appendChild(script);
   }).catch((error) => {
     loadPromise = null;

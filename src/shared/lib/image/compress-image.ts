@@ -45,5 +45,8 @@ export async function compressImageFile(file: File): Promise<File> {
   );
   if (!blob || blob.size >= file.size) return file;
 
-  return new File([blob], file.name, { type: file.type });
+  // toBlob이 요청한 file.type으로 인코딩하지 못하면 다른 포맷으로 조용히
+  // 폴백할 수 있어서(예: 지원 안 되는 타입 → PNG), 실제 인코딩된 blob.type을
+  // 신뢰해야 파일 확장자/내용과 선언된 타입이 어긋나지 않아요.
+  return new File([blob], file.name, { type: blob.type || file.type });
 }

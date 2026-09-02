@@ -1,12 +1,13 @@
 "use client";
 
 import { Box, HStack, Text, VStack } from "@seed-design/react";
-import type { ComponentType, SVGProps } from "react";
+import { type ComponentType, type SVGProps, useState } from "react";
 import {
   type Booth,
   type BoothMarker,
   type BoothMatrixConfig,
   buildBoothMatrix,
+  formatBoothLocation,
 } from "../model/pure";
 import { BOOTH_MARKER_META } from "./booth-marker-meta";
 
@@ -17,7 +18,8 @@ const LABEL_WIDTH = 24;
 // 어드민 매트릭스 편집기(admin-booth-grid)와 같은 격자 언어(구역=행,
 // 번호=열, 정사각 셀)를 그대로 써서, 관리자가 배치한 모양이 참가자·심사위원
 // 눈에 보이는 배치도와 항상 똑같이 보이게 해요. 다만 여기는 읽기 전용이라
-// 클릭 편집 대신 hover/tap 시 title 툴팁으로 팀 이름만 보여줘요.
+// 클릭 편집 대신 탭하면 아래 캡션에 팀 이름을 보여줘요. (title 툴팁은
+// 모바일 터치에서 안 뜨기 때문에 안 써요.)
 export function BoothFloorPlan({
   booths,
   teams,
@@ -38,6 +40,7 @@ export function BoothFloorPlan({
     matrixConfig,
   );
   const presentMarkerKinds = [...new Set(markers.map((marker) => marker.kind))];
+  const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
 
   if (zones.length === 0) {
     return (
@@ -93,43 +96,70 @@ export function BoothFloorPlan({
               const teamName = booth?.teamId
                 ? (teamNameById.get(booth.teamId) ?? "알 수 없는 팀")
                 : undefined;
+              const label = markerMeta
+                ? markerMeta.label
+                : teamName
+                  ? `${formatBoothLocation({ zone: zones[zoneIndex], number })} · ${teamName}`
+                  : undefined;
+
+              const cellStyle = {
+                gridColumn: number + 1,
+                gridRow: zoneIndex + 1,
+                aspectRatio: "1 / 1",
+                width: "100%",
+                borderRadius: 6,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                ...(markerMeta
+                  ? {
+                      background: "var(--seed-color-bg-neutral-weak)",
+                      color: "var(--seed-color-fg-neutral)",
+                    }
+                  : isMine
+                    ? { background: "var(--seed-color-bg-brand-solid)" }
+                    : teamName
+                      ? { background: "var(--seed-color-bg-neutral-weak)" }
+                      : {
+                          background: "var(--seed-color-bg-neutral-weak-alpha)",
+                        }),
+              };
+              const icon = markerMeta && (
+                <markerMeta.Icon width="60%" height="60%" />
+              );
+
+              if (label) {
+                return (
+                  <button
+                    key={`${zones[zoneIndex]}-${number}`}
+                    type="button"
+                    onClick={() => setSelectedLabel(label)}
+                    style={{ ...cellStyle, border: "none", padding: 0 }}
+                  >
+                    {icon}
+                  </button>
+                );
+              }
 
               return (
                 <div
                   key={`${zones[zoneIndex]}-${number}`}
-                  title={markerMeta ? markerMeta.label : teamName}
-                  style={{
-                    gridColumn: number + 1,
-                    gridRow: zoneIndex + 1,
-                    aspectRatio: "1 / 1",
-                    width: "100%",
-                    borderRadius: 6,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    ...(markerMeta
-                      ? {
-                          background: "var(--seed-color-bg-neutral-weak)",
-                          color: "var(--seed-color-fg-neutral)",
-                        }
-                      : isMine
-                        ? {
-                            background: "var(--seed-color-bg-brand-solid)",
-                          }
-                        : teamName
-                          ? { background: "var(--seed-color-bg-neutral-weak)" }
-                          : {
-                              background:
-                                "var(--seed-color-bg-neutral-weak-alpha)",
-                            }),
-                  }}
+                  style={cellStyle}
                 >
-                  {markerMeta && <markerMeta.Icon width="60%" height="60%" />}
+                  {icon}
                 </div>
               );
             }),
           )}
         </div>
+      </Box>
+
+      <Box style={{ minHeight: 20 }}>
+        {selectedLabel && (
+          <Text textStyle="t4Bold" color="fg.neutral">
+            {selectedLabel}
+          </Text>
+        )}
       </Box>
 
       {presentMarkerKinds.length > 0 && (

@@ -15,7 +15,7 @@ import {
 } from "@seed-design/react";
 import { clamp } from "es-toolkit";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLoading } from "react-simplikit";
 import { IconInstagram } from "seed-design/icon/icon-instagram";
 import { IconKakaoTalk } from "seed-design/icon/icon-kakaotalk";
@@ -406,8 +406,10 @@ function ScreenshotPreview({
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(initialIndex);
 
+  // useLayoutEffect로 페인트 전에 스크롤 위치를 맞춰서, 3번째 스크린샷을
+  // 눌렀는데 1번째가 잠깐 보였다가 넘어가는 깜빡임이 없게 해요.
   // biome-ignore lint/correctness/useExhaustiveDependencies: 열릴 때 시작 위치만 한 번 맞추면 되고, 이후 index 변화에 다시 반응하면 사용자가 스와이프한 위치를 덮어써버려요.
-  useEffect(() => {
+  useLayoutEffect(() => {
     const node = scrollRef.current;
     if (!node) return;
     node.scrollLeft = initialIndex * node.clientWidth;
@@ -569,6 +571,9 @@ function ZoomableImage({
   };
 
   const handlePointerDown = (event: React.PointerEvent<HTMLImageElement>) => {
+    // 캡처를 안 걸면 손가락이 빠르게 움직여 <img> 경계를 벗어났을 때
+    // pointermove/pointerup을 놓쳐서 제스처 상태가 멈춰버려요.
+    event.currentTarget.setPointerCapture(event.pointerId);
     pointers.current.set(event.pointerId, {
       x: event.clientX,
       y: event.clientY,
