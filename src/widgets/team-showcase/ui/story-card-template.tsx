@@ -7,6 +7,7 @@ import {
   type Booth,
   type BoothMarker,
   type BoothMatrixConfig,
+  buildBoothMatrix,
   formatBoothLocation,
 } from "@/entities/booth/model/pure";
 import { BOOTH_MARKER_META } from "@/entities/booth/ui/booth-marker-meta";
@@ -137,22 +138,7 @@ function MiniBoothGrid({
   matrixConfig?: BoothMatrixConfig;
   teamId: string;
 }) {
-  const visibleBooths = booths.filter((booth) => !booth.blocked);
-  const rawZones = [
-    ...new Set([
-      ...(matrixConfig?.zones ?? []),
-      ...visibleBooths.map((booth) => booth.zone),
-      ...markers.map((marker) => marker.zone),
-    ]),
-  ];
-  const zones = rawZones.sort();
-
-  const maxNumber = Math.max(
-    0,
-    ...visibleBooths.map((b) => b.number),
-    ...markers.map((m) => m.number),
-  );
-  const columns = Math.max(matrixConfig?.columns ?? 0, maxNumber, 1);
+  const { columns, grid } = buildBoothMatrix(booths, markers, matrixConfig);
 
   return (
     <div
@@ -164,15 +150,8 @@ function MiniBoothGrid({
         maxWidth: `${Math.min(312, columns * 32)}px`,
       }}
     >
-      {zones.map((zone) =>
-        Array.from({ length: columns }, (_, i) => i + 1).map((number) => {
-          const booth = visibleBooths.find(
-            (b) => b.zone === zone && b.number === number,
-          );
-          const marker = markers.find(
-            (m) => m.zone === zone && m.number === number,
-          );
-
+      {grid.map((row) =>
+        row.map(({ zone, number, booth, marker }) => {
           if (booth?.teamId === teamId) {
             return (
               <div

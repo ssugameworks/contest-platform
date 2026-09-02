@@ -16,6 +16,7 @@ import {
   AttachmentInput,
 } from "seed-design/ui/attachment-field";
 import { Snackbar, useSnackbarAdapter } from "seed-design/ui/snackbar";
+import { compressImageFile } from "@/shared/lib/image/compress-image";
 import { uploadTeamImageAction } from "../model/actions";
 
 // Same dnd-kit setup seed-design's own AttachmentInputReorderable uses
@@ -61,9 +62,12 @@ export function TeamImageUploadField({
     // stale snapshot.
     for (const entry of entries) {
       helpers.updateFileEntryStatus(entry.id, { status: "uploading" });
-      const formData = new FormData();
-      formData.set("file", entry.file);
-      uploadTeamImageAction(formData)
+      compressImageFile(entry.file)
+        .then((file) => {
+          const formData = new FormData();
+          formData.set("file", file);
+          return uploadTeamImageAction(formData);
+        })
         .then((url) => {
           helpers.updateFileEntryStatus(entry.id, { status: "success" });
           onUrlsChange((current) => [...current, url]);
