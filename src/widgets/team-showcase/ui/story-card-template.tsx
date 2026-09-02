@@ -110,7 +110,12 @@ export function StoryCardTemplate({
           </Text>
         </VStack>
         {logoUrl ? (
-          <Avatar size="80" src={logoUrl} fallback={<IdentityPlaceholder />} />
+          <Avatar
+            size="80"
+            src={logoUrl}
+            crossOrigin="anonymous"
+            fallback={<IdentityPlaceholder />}
+          />
         ) : (
           <Avatar size="80" fallback={<IdentityPlaceholder />} />
         )}

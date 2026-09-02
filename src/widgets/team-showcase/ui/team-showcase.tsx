@@ -35,6 +35,7 @@ import { StatCard } from "@/shared/ui/stat-card";
 import { BoothFloorPlanSheet } from "@/widgets/booth-floor-plan-dialog";
 import { InvestmentTransactions } from "@/widgets/investment-transactions";
 import { shareToInstagramStory } from "../model/share-to-instagram-story";
+import { shareToKakaoTalk } from "../model/share-to-kakao-talk";
 
 export function TeamShowcase({
   team,
@@ -63,13 +64,26 @@ export function TeamShowcase({
 }) {
   const adapter = useSnackbarAdapter();
   const [isSharingStory, setIsSharingStory] = useState(false);
+  const [isSharingKakao, setIsSharingKakao] = useState(false);
   const [floorPlanOpen, setFloorPlanOpen] = useState(false);
 
-  const shareStub = () => {
-    adapter.create({
-      onClose: () => {},
-      render: () => <Snackbar message="아직 연결되지 않았어요" />,
-    });
+  const shareKakao = async () => {
+    setIsSharingKakao(true);
+    try {
+      await shareToKakaoTalk({
+        teamName: team.name,
+        description: team.description,
+        imageUrl: team.imageUrl,
+        url: window.location.href,
+      });
+    } catch {
+      adapter.create({
+        onClose: () => {},
+        render: () => <Snackbar message="카카오톡 공유에 실패했어요" />,
+      });
+    } finally {
+      setIsSharingKakao(false);
+    }
   };
 
   const copyLink = async () => {
@@ -180,6 +194,7 @@ export function TeamShowcase({
                 <Avatar
                   size="48"
                   src={team.imageUrl ?? undefined}
+                  crossOrigin="anonymous"
                   fallback={<IdentityPlaceholder />}
                 />
                 <PageHeader title={team.name} description={team.description} />
@@ -297,7 +312,11 @@ export function TeamShowcase({
             <VStack gap="x3" width="full">
               <Text textStyle="t5Bold">이 팀 공유하기</Text>
               <HStack gap="x3" wrap>
-                <ActionButton variant="neutralWeak" onClick={shareStub}>
+                <ActionButton
+                  variant="neutralWeak"
+                  onClick={shareKakao}
+                  loading={isSharingKakao}
+                >
                   <IconKakaoTalk width={16} height={16} />
                   카카오톡 공유
                 </ActionButton>
