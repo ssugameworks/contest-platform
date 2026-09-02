@@ -48,7 +48,11 @@ export async function buildStoryCard(props: {
       width: STORY_CARD_WIDTH,
       height: STORY_CARD_HEIGHT,
       pixelRatio: PIXEL_RATIO,
-      cacheBust: true,
+      // cacheBust를 켜면 매번 로고를 새로 네트워크에서 받아와서, 헤더 아바타가
+      // crossOrigin="anonymous"로 이미 데워둔 브라우저 캐시를 못 쓰게 돼요.
+      // 그러면 캡처가 느려져서 navigator.share()의 user activation이
+      // 만료되기 쉬워지니 캐시를 그대로 재사용해요.
+      cacheBust: false,
       // 로고가 없을 때 SEED Avatar가 항상 렌더링하는 빈 <img src=""> 때문에
       // html-to-image가 그 이미지를 현재 페이지 URL로 오인해 embed를
       // 시도하다 실패해요. src 없는 <img>만 클론 대상에서 제외해요.

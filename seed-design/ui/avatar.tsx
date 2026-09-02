@@ -14,6 +14,9 @@ export interface AvatarProps extends SeedAvatar.RootProps {
 
   alt?: string;
 
+  /** 캔버스로 캡처해야 하는 이미지(예: 스토리 카드)에는 "anonymous"를 넘겨서 CORS 요청으로 로드해요. */
+  crossOrigin?: React.ImgHTMLAttributes<HTMLImageElement>["crossOrigin"];
+
   fallback?: React.ReactNode;
 }
 
@@ -21,11 +24,11 @@ export interface AvatarProps extends SeedAvatar.RootProps {
  * @see https://seed-design.io/react/components/avatar
  */
 export const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
-  ({ src, alt, fallback, children, ...otherProps }, ref) => {
+  ({ src, alt, crossOrigin, fallback, children, ...otherProps }, ref) => {
     return (
       <SeedAvatar.Root ref={ref} {...otherProps}>
         <SeedAvatar.Fallback>{fallback}</SeedAvatar.Fallback>
-        <SeedAvatar.Image src={src} alt={alt} />
+        <SeedAvatar.Image src={src} alt={alt} crossOrigin={crossOrigin} />
         {children}
       </SeedAvatar.Root>
     );
