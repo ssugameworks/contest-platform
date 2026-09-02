@@ -1,31 +1,46 @@
 "use client";
 
 import { Box, HStack, Text, VStack } from "@seed-design/react";
-import type { Booth, BoothMarker } from "../model/pure";
+import { type ComponentType, type SVGProps, useState } from "react";
+import {
+  type Booth,
+  type BoothMarker,
+  type BoothMatrixConfig,
+  buildBoothMatrix,
+  formatBoothLocation,
+} from "../model/pure";
 import { BOOTH_MARKER_META } from "./booth-marker-meta";
 
-// zone마다 number 범위가 다를 수 있어서 zone 전체를 아우르는 정사각 그리드
-// 대신, zone별로 한 행을 만들고 그 안에서만 number 순으로 wrap해요.
+const CELL_MIN_SIZE = 36;
+const CELL_MAX_SIZE = 64;
+const LABEL_WIDTH = 24;
+
+// 어드민 매트릭스 편집기(admin-booth-grid)와 같은 격자 언어(구역=행,
+// 번호=열, 정사각 셀)를 그대로 써서, 관리자가 배치한 모양이 참가자·심사위원
+// 눈에 보이는 배치도와 항상 똑같이 보이게 해요. 다만 여기는 읽기 전용이라
+// 클릭 편집 대신 탭하면 아래 캡션에 팀 이름을 보여줘요. (title 툴팁은
+// 모바일 터치에서 안 뜨기 때문에 안 써요.)
 export function BoothFloorPlan({
   booths,
   teams,
   markers = [],
+  matrixConfig,
   highlightTeamId,
 }: {
   booths: Booth[];
   teams: { id: string; name: string }[];
   markers?: BoothMarker[];
+  matrixConfig?: BoothMatrixConfig;
   highlightTeamId?: string | null;
 }) {
-  // 막힌 자리는 관리자 화면에만 보이고, 여기선 아예 없는 자리처럼 취급해요.
-  const visibleBooths = booths.filter((booth) => !booth.blocked);
   const teamNameById = new Map(teams.map((team) => [team.id, team.name]));
-  const zones = [
-    ...new Set([
-      ...visibleBooths.map((booth) => booth.zone),
-      ...markers.map((marker) => marker.zone),
-    ]),
-  ].sort();
+  const { zones, columns, grid } = buildBoothMatrix(
+    booths,
+    markers,
+    matrixConfig,
+  );
+  const presentMarkerKinds = [...new Set(markers.map((marker) => marker.kind))];
+  const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
 
   if (zones.length === 0) {
     return (
@@ -36,87 +51,152 @@ export function BoothFloorPlan({
   }
 
   return (
-    <VStack gap="x3" width="full">
-      {zones.map((zone) => (
-        <HStack key={zone} gap="x2" align="center" wrap>
-          <Text textStyle="t4Bold" style={{ width: 24 }}>
-            {zone}
-          </Text>
-          {[
-            ...visibleBooths
-              .filter((booth) => booth.zone === zone)
-              .map((booth) => ({ type: "booth" as const, booth })),
-            ...markers
-              .filter((marker) => marker.zone === zone)
-              .map((marker) => ({ type: "marker" as const, marker })),
-          ]
-            .sort((a, b) => {
-              const numberA =
-                a.type === "booth" ? a.booth.number : a.marker.number;
-              const numberB =
-                b.type === "booth" ? b.booth.number : b.marker.number;
-              return numberA - numberB;
-            })
-            .map((item) => {
-              if (item.type === "marker") {
-                const { label, Icon } = BOOTH_MARKER_META[item.marker.kind];
+    <VStack gap="x4" width="full">
+      <Box style={{ overflowX: "auto", width: "100%" }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: `${LABEL_WIDTH}px repeat(${columns}, minmax(${CELL_MIN_SIZE}px, ${CELL_MAX_SIZE}px))`,
+            gap: 4,
+            width: "100%",
+            justifyContent: "center",
+          }}
+        >
+          {zones.map((zone, zoneIndex) => (
+            <div
+              key={zone}
+              style={{
+                gridColumn: 1,
+                gridRow: zoneIndex + 1,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontWeight: 700,
+              }}
+            >
+              {zone}
+            </div>
+          ))}
+          {grid.flatMap((row, zoneIndex) =>
+            row.map(({ number, booth, marker }) => {
+              if (!booth && !marker) {
                 return (
-                  <Box
-                    key={`marker-${item.marker.zone}-${item.marker.number}`}
-                    borderRadius="r2"
-                    px="x3"
-                    py="x2"
-                    display="flex"
-                    style={{
-                      minWidth: 96,
-                      alignItems: "center",
-                      gap: 6,
-                      border:
-                        "1px dashed var(--seed-color-stroke-neutral-weak)",
-                      background: "var(--seed-color-bg-neutral-weak)",
-                    }}
-                  >
-                    <Icon width={16} height={16} />
-                    <Text textStyle="t3Regular" color="fg.neutral">
-                      {label}
-                    </Text>
-                  </Box>
+                  <div
+                    key={`${zones[zoneIndex]}-${number}`}
+                    style={{ gridColumn: number + 1, gridRow: zoneIndex + 1 }}
+                  />
                 );
               }
-              const { booth } = item;
-              const teamName = booth.teamId
+
+              const markerMeta = marker
+                ? BOOTH_MARKER_META[marker.kind]
+                : undefined;
+              const isMine =
+                !!highlightTeamId && booth?.teamId === highlightTeamId;
+              const teamName = booth?.teamId
                 ? (teamNameById.get(booth.teamId) ?? "알 수 없는 팀")
-                : null;
-              const isHighlighted =
-                !!highlightTeamId && booth.teamId === highlightTeamId;
-              return (
-                <Box
-                  key={booth.id}
-                  borderRadius="r2"
-                  px="x3"
-                  py="x2"
-                  style={{
-                    minWidth: 96,
-                    border: isHighlighted
-                      ? "2px solid var(--seed-color-stroke-brand-solid)"
-                      : "1px solid var(--seed-color-stroke-neutral-weak)",
-                    background: isHighlighted
-                      ? "var(--seed-color-bg-brand-weak)"
-                      : "var(--seed-color-bg-layer-default)",
-                  }}
-                >
-                  <Text textStyle="t5Bold">{booth.number}</Text>
-                  <Text
-                    textStyle="t3Regular"
-                    color={teamName ? "fg.neutral" : "fg.neutralSubtle"}
-                  >
-                    {teamName ?? "빈자리"}
-                  </Text>
-                </Box>
+                : undefined;
+              const label = markerMeta
+                ? markerMeta.label
+                : teamName
+                  ? `${formatBoothLocation({ zone: zones[zoneIndex], number })} · ${teamName}`
+                  : undefined;
+
+              const cellStyle = {
+                gridColumn: number + 1,
+                gridRow: zoneIndex + 1,
+                aspectRatio: "1 / 1",
+                width: "100%",
+                borderRadius: 6,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                ...(markerMeta
+                  ? {
+                      background: "var(--seed-color-bg-neutral-weak)",
+                      color: "var(--seed-color-fg-neutral)",
+                    }
+                  : isMine
+                    ? { background: "var(--seed-color-bg-brand-solid)" }
+                    : teamName
+                      ? { background: "var(--seed-color-bg-neutral-weak)" }
+                      : {
+                          background: "var(--seed-color-bg-neutral-weak-alpha)",
+                        }),
+              };
+              const icon = markerMeta && (
+                <markerMeta.Icon width="60%" height="60%" />
               );
-            })}
+
+              if (label) {
+                return (
+                  <button
+                    key={`${zones[zoneIndex]}-${number}`}
+                    type="button"
+                    onClick={() => setSelectedLabel(label)}
+                    style={{ ...cellStyle, border: "none", padding: 0 }}
+                  >
+                    {icon}
+                  </button>
+                );
+              }
+
+              return (
+                <div
+                  key={`${zones[zoneIndex]}-${number}`}
+                  style={cellStyle}
+                >
+                  {icon}
+                </div>
+              );
+            }),
+          )}
+        </div>
+      </Box>
+
+      <Box style={{ minHeight: 20 }}>
+        {selectedLabel && (
+          <Text textStyle="t4Bold" color="fg.neutral">
+            {selectedLabel}
+          </Text>
+        )}
+      </Box>
+
+      {presentMarkerKinds.length > 0 && (
+        <HStack gap="x4" wrap>
+          {presentMarkerKinds.map((kind) => {
+            const meta = BOOTH_MARKER_META[kind];
+            return (
+              <MarkerLegendItem
+                key={kind}
+                icon={meta.Icon}
+                label={meta.label}
+              />
+            );
+          })}
         </HStack>
-      ))}
+      )}
     </VStack>
+  );
+}
+
+function MarkerLegendItem({
+  icon: Icon,
+  label,
+}: {
+  icon: ComponentType<SVGProps<SVGSVGElement>>;
+  label: string;
+}) {
+  return (
+    <HStack gap="x1" align="center">
+      <Icon
+        width={14}
+        height={14}
+        style={{ color: "var(--seed-color-fg-neutral)" }}
+      />
+      <Text textStyle="t3Regular" color="fg.neutralSubtle">
+        {label}
+      </Text>
+    </HStack>
   );
 }

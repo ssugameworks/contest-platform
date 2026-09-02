@@ -7,6 +7,7 @@ import {
   BottomSheetRoot,
 } from "seed-design/ui/bottom-sheet";
 import {
+  getBoothMatrixConfigAction,
   listBoothMarkersAction,
   listBoothsAction,
 } from "@/entities/booth/model/actions";
@@ -37,15 +38,23 @@ export function BoothFloorPlanSheet({
     queryFn: listTeamsAction,
     enabled: open,
   });
+  const { data: matrixConfig } = useQuery({
+    queryKey: ["booth-matrix-config"],
+    queryFn: getBoothMatrixConfigAction,
+    enabled: open,
+  });
 
   return (
     <BottomSheetRoot open={open} onOpenChange={onOpenChange}>
       <BottomSheetContent title="부스 배치도">
-        <BottomSheetBody>
+        <BottomSheetBody
+          style={{ paddingBottom: "calc(var(--seed-safe-area-bottom) + 24px)" }}
+        >
           <BoothFloorPlan
             booths={booths}
             teams={teams}
             markers={markers}
+            matrixConfig={matrixConfig}
             highlightTeamId={highlightTeamId}
           />
         </BottomSheetBody>

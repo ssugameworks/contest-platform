@@ -3,6 +3,7 @@
 import { Box, HStack, ResponsivePair, Text, VStack } from "@seed-design/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { useBooleanState, useSet } from "react-simplikit";
 import { ActionButton } from "seed-design/ui/action-button";
 import {
   AlertDialogAction,
@@ -116,8 +117,8 @@ export function AdminBoothGrid() {
   const [pendingChange, setPendingChange] = useState<PendingChange | null>(
     null,
   );
-  const [editMode, setEditMode] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [editMode, , setEditModeOff, toggleEditMode] = useBooleanState(false);
+  const [selectedIds, selectedIdsActions] = useSet<string>();
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
   const [selectedMarkerKind, setSelectedMarkerKind] =
     useState<BoothMarkerKind | null>(null);
@@ -229,7 +230,7 @@ export function AdminBoothGrid() {
       Promise.all(ids.map((id) => deleteBoothAction(id))),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: BOOTHS_QUERY_KEY });
-      setSelectedIds(new Set());
+      selectedIdsActions.reset();
       adapter.create({
         onClose: () => {},
         render: () => <Snackbar variant="positive" message="삭제했어요" />,
@@ -263,12 +264,7 @@ export function AdminBoothGrid() {
       // 편집 모드에선 클릭이 즉시 만들기/열기가 아니라 일괄 삭제용 선택
       // 토글이에요. 아직 없는 자리는 선택할 게 없어서 무시해요.
       if (!existing) return;
-      setSelectedIds((current) => {
-        const next = new Set(current);
-        if (next.has(existing.id)) next.delete(existing.id);
-        else next.add(existing.id);
-        return next;
-      });
+      selectedIdsActions.toggle(existing.id);
       return;
     }
     if (existing) {
@@ -414,8 +410,8 @@ export function AdminBoothGrid() {
               variant={active ? "brandSolid" : "neutralWeak"}
               onClick={() => {
                 setSelectedMarkerKind(active ? null : kind);
-                setEditMode(false);
-                setSelectedIds(new Set());
+                setEditModeOff();
+                selectedIdsActions.reset();
               }}
             >
               <Icon width={14} height={14} />
@@ -430,8 +426,8 @@ export function AdminBoothGrid() {
           type="button"
           variant={editMode ? "brandSolid" : "neutralWeak"}
           onClick={() => {
-            setEditMode((current) => !current);
-            setSelectedIds(new Set());
+            toggleEditMode();
+            selectedIdsActions.reset();
             setSelectedMarkerKind(null);
           }}
         >

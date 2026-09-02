@@ -1,3 +1,4 @@
+import { orderBy } from "es-toolkit";
 import { createAdminClient } from "@/shared/lib/supabase/admin";
 import { throwIfError } from "@/shared/lib/supabase/query";
 import {
@@ -37,7 +38,7 @@ export async function getInvestmentRank(
   teamId: string,
 ): Promise<{ rank: number; totalTeams: number }> {
   const totals = await getTeamInvestmentTotals();
-  const sorted = [...totals].sort((a, b) => b.amount - a.amount);
+  const sorted = orderBy(totals, ["amount"], ["desc"]);
   return {
     rank: sorted.findIndex((entry) => entry.teamId === teamId) + 1,
     totalTeams: sorted.length,

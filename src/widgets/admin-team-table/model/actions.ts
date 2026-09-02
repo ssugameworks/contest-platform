@@ -1,5 +1,6 @@
 "use server";
 
+import { keyBy } from "es-toolkit";
 import { formatBoothLocation, listBooths } from "@/entities/booth";
 import {
   getInvestorCounts,
@@ -28,9 +29,7 @@ export async function listAdminTeamRows(): Promise<AdminTeamRow[]> {
   const amountByTeam = Object.fromEntries(
     totals.map((entry) => [entry.teamId, entry.amount]),
   );
-  const boothByTeam = Object.fromEntries(
-    booths.map((booth) => [booth.teamId, booth]),
-  );
+  const boothByTeam = keyBy(booths, (booth) => booth.teamId ?? "");
 
   return teams.map((team) => {
     const booth = boothByTeam[team.id];

@@ -8,6 +8,7 @@ import {
   VStack,
 } from "@seed-design/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { orderBy } from "es-toolkit";
 import { type ReactNode, useMemo, useState } from "react";
 import { ActionButton } from "seed-design/ui/action-button";
 import {
@@ -40,7 +41,7 @@ import {
   TableRow,
 } from "@/shared/ui/table";
 
-export interface AdminCrudColumn<T> {
+export interface AdminCrudColumn<T extends object> {
   header: string;
   align?: "left" | "right" | "center";
   cell: (item: T) => ReactNode;
@@ -48,7 +49,7 @@ export interface AdminCrudColumn<T> {
   sortValue?: (item: T) => number;
 }
 
-export interface AdminCrudTableProps<T> {
+export interface AdminCrudTableProps<T extends object> {
   queryKey: unknown[];
   queryFn: () => Promise<T[]>;
   getId: (item: T) => string;
@@ -64,7 +65,7 @@ export interface AdminCrudTableProps<T> {
   defaultSortDesc?: boolean;
 }
 
-export function AdminCrudTable<T>({
+export function AdminCrudTable<T extends object>({
   queryKey,
   queryFn,
   getId,
@@ -113,9 +114,7 @@ export function AdminCrudTable<T>({
     const filtered = items.filter((item) => searchPredicate(item, query));
     const sortValue = sortColumn?.sortValue;
     if (!sortValue) return filtered;
-    return [...filtered].sort((a, b) =>
-      sortDesc ? sortValue(b) - sortValue(a) : sortValue(a) - sortValue(b),
-    );
+    return orderBy(filtered, [sortValue], [sortDesc ? "desc" : "asc"]);
   }, [items, query, sortDesc, searchPredicate, sortColumn]);
 
   const openCreate = () => {

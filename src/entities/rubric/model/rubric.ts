@@ -1,3 +1,5 @@
+import { sumBy } from "es-toolkit";
+
 export interface RubricCriterion {
   id: string;
   label: string;
@@ -11,7 +13,7 @@ export const rubricCriteria: RubricCriterion[] = [
   { id: "presentation", label: "발표력", maxScore: 10 },
 ];
 
-export const rubricMaxTotal = rubricCriteria.reduce(
-  (sum, criterion) => sum + criterion.maxScore,
-  0,
+export const rubricMaxTotal = sumBy(
+  rubricCriteria,
+  (criterion) => criterion.maxScore,
 );

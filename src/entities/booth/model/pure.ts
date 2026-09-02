@@ -41,3 +41,57 @@ export interface BoothMarker {
   number: number;
   kind: BoothMarkerKind;
 }
+
+export interface BoothMatrixCell {
+  zone: string;
+  number: number;
+  booth?: Booth;
+  marker?: BoothMarker;
+}
+
+/**
+ * 부스/마커를 구역(행) × 번호(열) 매트릭스로 배열해요. 저장된 matrixConfig가
+ * 없거나 실제 데이터가 그보다 크면(예: 설정 전에 만들어진 부스) 실제 데이터
+ * 범위까지 자동으로 넓혀서, 어떤 화면에서 봐도 항상 같은 격자가 나오게 해요.
+ * 빈 칸(부스도 마커도 없는 통로)은 렌더러가 투명 셀로 자리만 유지하면 돼요.
+ */
+export function buildBoothMatrix(
+  booths: Booth[],
+  markers: BoothMarker[],
+  matrixConfig?: BoothMatrixConfig,
+): { zones: string[]; columns: number; grid: BoothMatrixCell[][] } {
+  const visibleBooths = booths.filter((booth) => !booth.blocked);
+
+  const zones = [
+    ...new Set([
+      ...(matrixConfig?.zones ?? []),
+      ...visibleBooths.map((booth) => booth.zone),
+      ...markers.map((marker) => marker.zone),
+    ]),
+  ].sort();
+
+  const maxNumber = Math.max(
+    0,
+    ...visibleBooths.map((booth) => booth.number),
+    ...markers.map((marker) => marker.number),
+  );
+  const columns = Math.max(matrixConfig?.columns ?? 0, maxNumber, 1);
+
+  const grid = zones.map((zone) =>
+    Array.from({ length: columns }, (_, i) => {
+      const number = i + 1;
+      return {
+        zone,
+        number,
+        booth: visibleBooths.find(
+          (booth) => booth.zone === zone && booth.number === number,
+        ),
+        marker: markers.find(
+          (marker) => marker.zone === zone && marker.number === number,
+        ),
+      };
+    }),
+  );
+
+  return { zones, columns, grid };
+}

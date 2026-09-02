@@ -1,6 +1,8 @@
 "use client";
 
 import IconCheckmarkClipboardLine from "@karrotmarket/react-monochrome-icon/IconCheckmarkClipboardLine";
+import IconChevronRightSmallLine from "@karrotmarket/react-monochrome-icon/IconChevronRightSmallLine";
+import IconXmarkLine from "@karrotmarket/react-monochrome-icon/IconXmarkLine";
 import {
   Badge,
   Box,
@@ -11,8 +13,10 @@ import {
   Text,
   VStack,
 } from "@seed-design/react";
+import { clamp } from "es-toolkit";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useLoading } from "react-simplikit";
 import { IconInstagram } from "seed-design/icon/icon-instagram";
 import { IconKakaoTalk } from "seed-design/icon/icon-kakaotalk";
 import { ActionButton } from "seed-design/ui/action-button";
@@ -63,28 +67,25 @@ export function TeamShowcase({
   isJudge: boolean;
 }) {
   const adapter = useSnackbarAdapter();
-  const [isSharingStory, setIsSharingStory] = useState(false);
-  const [isSharingKakao, setIsSharingKakao] = useState(false);
+  const [isSharingStory, startSharingStory] = useLoading();
+  const [isSharingKakao, startSharingKakao] = useLoading();
   const [floorPlanOpen, setFloorPlanOpen] = useState(false);
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
 
-  const shareKakao = async () => {
-    setIsSharingKakao(true);
-    try {
-      await shareToKakaoTalk({
+  const shareKakao = () =>
+    startSharingKakao(
+      shareToKakaoTalk({
         teamName: team.name,
         description: team.description,
         imageUrl: team.imageUrl,
         url: window.location.href,
-      });
-    } catch {
-      adapter.create({
-        onClose: () => {},
-        render: () => <Snackbar message="카카오톡 공유에 실패했어요" />,
-      });
-    } finally {
-      setIsSharingKakao(false);
-    }
-  };
+      }).catch(() => {
+        adapter.create({
+          onClose: () => {},
+          render: () => <Snackbar message="카카오톡 공유에 실패했어요" />,
+        });
+      }),
+    );
 
   const copyLink = async () => {
     await navigator.clipboard.writeText(window.location.href);
@@ -94,10 +95,9 @@ export function TeamShowcase({
     });
   };
 
-  const shareStory = async () => {
-    setIsSharingStory(true);
-    try {
-      const outcome = await shareToInstagramStory({
+  const shareStory = () =>
+    startSharingStory(
+      shareToInstagramStory({
         teamName: team.name,
         tags: team.tags,
         description: team.description,
@@ -108,30 +108,32 @@ export function TeamShowcase({
         markers,
         matrixConfig,
         teamId: team.id,
-      });
-      if (outcome === "downloaded") {
-        adapter.create({
-          onClose: () => {},
-          render: () => (
-            <Snackbar message="스토리 이미지를 저장했어요. 인스타그램에서 직접 올려주세요" />
-          ),
-        });
-      }
-    } catch (error) {
-      // 사용자가 공유 시트를 취소한 경우(AbortError)는 실패가 아니에요.
-      if (error instanceof Error && error.name === "AbortError") return;
-      adapter.create({
-        onClose: () => {},
-        render: () => <Snackbar message="스토리 공유에 실패했어요" />,
-      });
-    } finally {
-      setIsSharingStory(false);
-    }
-  };
+      })
+        .then((outcome) => {
+          if (outcome === "downloaded") {
+            adapter.create({
+              onClose: () => {},
+              render: () => (
+                <Snackbar message="스토리 이미지를 저장했어요. 인스타그램에서 직접 올려주세요" />
+              ),
+            });
+          }
+        })
+        .catch((error) => {
+          // 사용자가 공유 시트를 취소한 경우(AbortError)는 실패가 아니에요.
+          if (error instanceof Error && error.name === "AbortError") return;
+          // 원인이 캔버스 캡처 실패인지, share() 거부인지 콘솔에서 구분할 수 있게 남겨요.
+          console.error("[shareStory]", error);
+          adapter.create({
+            onClose: () => {},
+            render: () => <Snackbar message="스토리 공유에 실패했어요" />,
+          });
+        }),
+    );
 
   const bottomAction = isJudge ? null : !currentUser ? (
     <HelpBubbleAnchor
-      defaultOpen
+      open={!floorPlanOpen}
       title="학번과 이름을 입력하고 이 팀에 투자해요"
       placement="top"
       closeOnInteractOutside={false}
@@ -210,11 +212,21 @@ export function TeamShowcase({
               <StatCard label="투자 등수" value={`${rank}위`} />
               <Box
                 onClick={() => setFloorPlanOpen(true)}
-                style={{ cursor: "pointer" }}
+                style={{ cursor: "pointer", position: "relative" }}
               >
                 <StatCard
                   label="부스 위치"
                   value={booth ? formatBoothLocation(booth) : "-"}
+                />
+                <IconChevronRightSmallLine
+                  width={18}
+                  height={18}
+                  style={{
+                    position: "absolute",
+                    top: 10,
+                    right: 10,
+                    color: "var(--seed-color-fg-neutral-subtle)",
+                  }}
                 />
               </Box>
             </Grid>
@@ -254,14 +266,16 @@ export function TeamShowcase({
                       paddingInline: "12px",
                     }}
                   >
-                    {team.screenshotUrls.map((url) => (
+                    {team.screenshotUrls.map((url, index) => (
                       <Box
                         key={url}
                         borderRadius="r2"
+                        onClick={() => setPreviewIndex(index)}
                         style={{
                           flexShrink: 0,
                           overflow: "hidden",
                           scrollSnapAlign: "center",
+                          cursor: "pointer",
                         }}
                       >
                         {/* biome-ignore lint/performance/noImgElement: 스마트폰/데스크톱
@@ -362,6 +376,308 @@ export function TeamShowcase({
         onOpenChange={setFloorPlanOpen}
         highlightTeamId={team.id}
       />
+
+      {previewIndex !== null && (
+        <ScreenshotPreview
+          urls={team.screenshotUrls}
+          initialIndex={previewIndex}
+          altPrefix={`${team.name} 제품 화면`}
+          onClose={() => setPreviewIndex(null)}
+        />
+      )}
     </Box>
+  );
+}
+
+// 썸네일 갤러리와 같은 순서로 전체화면 이미지를 가로 스크롤 스냅으로
+// 넘겨볼 수 있게 해요. 열릴 때 클릭했던 인덱스로 스크롤 위치만 맞추고,
+// 이후 스크롤 위치는 사용자 스와이프에 완전히 맡겨요.
+function ScreenshotPreview({
+  urls,
+  initialIndex,
+  altPrefix,
+  onClose,
+}: {
+  urls: string[];
+  initialIndex: number;
+  altPrefix: string;
+  onClose: () => void;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [activeIndex, setActiveIndex] = useState(initialIndex);
+
+  // useLayoutEffect로 페인트 전에 스크롤 위치를 맞춰서, 3번째 스크린샷을
+  // 눌렀는데 1번째가 잠깐 보였다가 넘어가는 깜빡임이 없게 해요.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 열릴 때 시작 위치만 한 번 맞추면 되고, 이후 index 변화에 다시 반응하면 사용자가 스와이프한 위치를 덮어써버려요.
+  useLayoutEffect(() => {
+    const node = scrollRef.current;
+    if (!node) return;
+    node.scrollLeft = initialIndex * node.clientWidth;
+  }, []);
+
+  const handleScroll = () => {
+    const node = scrollRef.current;
+    if (!node) return;
+    setActiveIndex(Math.round(node.scrollLeft / node.clientWidth));
+  };
+
+  return (
+    <Box position="fixed" zIndex={1000} bg="black" style={{ inset: 0 }}>
+      <button
+        type="button"
+        aria-label="닫기"
+        onClick={onClose}
+        style={{
+          position: "absolute",
+          top: "calc(var(--seed-safe-area-top) + 16px)",
+          right: 16,
+          zIndex: 1,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: 40,
+          height: 40,
+          border: "none",
+          background: "transparent",
+          color: "white",
+          cursor: "pointer",
+        }}
+      >
+        <IconXmarkLine width={24} height={24} />
+      </button>
+      {urls.length > 1 && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: "calc(var(--seed-safe-area-bottom) + 20px)",
+            left: 0,
+            right: 0,
+            display: "flex",
+            justifyContent: "center",
+            gap: 6,
+            pointerEvents: "none",
+          }}
+        >
+          {urls.map((url, index) => (
+            <div
+              key={url}
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                background:
+                  index === activeIndex ? "white" : "rgba(255, 255, 255, 0.4)",
+              }}
+            />
+          ))}
+        </div>
+      )}
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        style={{
+          display: "flex",
+          width: "100%",
+          height: "100%",
+          overflowX: "auto",
+          scrollSnapType: "x mandatory",
+        }}
+      >
+        {urls.map((url, index) => (
+          // biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: 배경(레터박스) 클릭 시 닫는 마우스 전용 보조 동작이고, 키보드 사용자는 X 버튼으로 닫을 수 있어요.
+          <div
+            key={url}
+            onClick={(event) => {
+              if (event.target === event.currentTarget) onClose();
+            }}
+            style={{
+              flex: "0 0 100%",
+              scrollSnapAlign: "center",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <ZoomableImage
+              src={url}
+              alt={`${altPrefix} ${index + 1}/${urls.length}`}
+              isActive={index === activeIndex}
+            />
+          </div>
+        ))}
+      </div>
+    </Box>
+  );
+}
+
+const ZOOM_MIN_SCALE = 1;
+const ZOOM_MAX_SCALE = 4;
+const ZOOM_DOUBLE_TAP_SCALE = 2.5;
+const ZOOM_DOUBLE_TAP_INTERVAL_MS = 300;
+
+type ZoomGesture =
+  | {
+      mode: "pan";
+      startX: number;
+      startY: number;
+      startPan: { x: number; y: number };
+    }
+  | { mode: "pinch"; startDistance: number; startScale: number };
+
+// 브라우저 기본 핀치/더블탭 확대는 페이지 전체를 확대해버려서, 이미지에는
+// touchAction으로 그 기본 동작을 끄고 핀치·더블탭·드래그를 직접 구현해요.
+// 정교한 앵커 포인트 보정 없이 중심 기준으로만 확대해서 구현을 단순하게 뒀어요.
+function ZoomableImage({
+  src,
+  alt,
+  isActive,
+}: {
+  src: string;
+  alt: string;
+  isActive: boolean;
+}) {
+  const imgRef = useRef<HTMLImageElement>(null);
+  const [scale, setScale] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const gestureRef = useRef<ZoomGesture | null>(null);
+  const lastTapAtRef = useRef(0);
+
+  useEffect(() => {
+    if (isActive) return;
+    setScale(1);
+    setPan({ x: 0, y: 0 });
+  }, [isActive]);
+
+  const clampPan = (nextScale: number, nextPan: { x: number; y: number }) => {
+    const node = imgRef.current;
+    if (!node) return nextPan;
+    const maxX = (node.offsetWidth * (nextScale - 1)) / 2;
+    const maxY = (node.offsetHeight * (nextScale - 1)) / 2;
+    return {
+      x: clamp(nextPan.x, -maxX, maxX),
+      y: clamp(nextPan.y, -maxY, maxY),
+    };
+  };
+
+  const toggleDoubleTapZoom = () => {
+    if (scale > 1) {
+      setScale(1);
+      setPan({ x: 0, y: 0 });
+    } else {
+      setScale(ZOOM_DOUBLE_TAP_SCALE);
+      setPan({ x: 0, y: 0 });
+    }
+  };
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLImageElement>) => {
+    // 캡처를 안 걸면 손가락이 빠르게 움직여 <img> 경계를 벗어났을 때
+    // pointermove/pointerup을 놓쳐서 제스처 상태가 멈춰버려요.
+    event.currentTarget.setPointerCapture(event.pointerId);
+    pointers.current.set(event.pointerId, {
+      x: event.clientX,
+      y: event.clientY,
+    });
+
+    if (pointers.current.size === 2) {
+      const [a, b] = [...pointers.current.values()];
+      gestureRef.current = {
+        mode: "pinch",
+        startDistance: Math.hypot(a.x - b.x, a.y - b.y),
+        startScale: scale,
+      };
+      return;
+    }
+
+    if (pointers.current.size === 1) {
+      const now = Date.now();
+      const isDoubleTap =
+        now - lastTapAtRef.current < ZOOM_DOUBLE_TAP_INTERVAL_MS;
+      lastTapAtRef.current = now;
+      if (isDoubleTap) {
+        toggleDoubleTapZoom();
+        gestureRef.current = null;
+        return;
+      }
+      if (scale > 1) {
+        gestureRef.current = {
+          mode: "pan",
+          startX: event.clientX,
+          startY: event.clientY,
+          startPan: pan,
+        };
+      }
+    }
+  };
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLImageElement>) => {
+    if (!pointers.current.has(event.pointerId)) return;
+    pointers.current.set(event.pointerId, {
+      x: event.clientX,
+      y: event.clientY,
+    });
+
+    const gesture = gestureRef.current;
+    if (!gesture) return;
+
+    if (gesture.mode === "pinch" && pointers.current.size === 2) {
+      event.preventDefault();
+      const [a, b] = [...pointers.current.values()];
+      const distance = Math.hypot(a.x - b.x, a.y - b.y);
+      const nextScale = Math.min(
+        ZOOM_MAX_SCALE,
+        Math.max(
+          ZOOM_MIN_SCALE,
+          gesture.startScale * (distance / gesture.startDistance),
+        ),
+      );
+      setScale(nextScale);
+      setPan((prev) => clampPan(nextScale, prev));
+      return;
+    }
+
+    if (gesture.mode === "pan") {
+      event.preventDefault();
+      const dx = event.clientX - gesture.startX;
+      const dy = event.clientY - gesture.startY;
+      setPan(
+        clampPan(scale, {
+          x: gesture.startPan.x + dx,
+          y: gesture.startPan.y + dy,
+        }),
+      );
+    }
+  };
+
+  const endPointer = (event: React.PointerEvent<HTMLImageElement>) => {
+    pointers.current.delete(event.pointerId);
+    if (pointers.current.size === 0) gestureRef.current = null;
+  };
+
+  return (
+    // biome-ignore lint/performance/noImgElement: 사용자 업로드 스크린샷, 정적 자산 아님
+    <img
+      ref={imgRef}
+      src={src}
+      alt={alt}
+      draggable={false}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={endPointer}
+      onPointerCancel={endPointer}
+      onDoubleClick={(event) => {
+        event.preventDefault();
+        toggleDoubleTapZoom();
+      }}
+      style={{
+        maxWidth: "100%",
+        maxHeight: "100%",
+        objectFit: "contain",
+        touchAction: scale > 1 ? "none" : "pan-x",
+        transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
+        transition: gestureRef.current ? "none" : "transform 0.15s ease-out",
+        cursor: scale > 1 ? "grab" : "default",
+      }}
+    />
   );
 }

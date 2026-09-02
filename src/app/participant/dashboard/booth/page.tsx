@@ -2,6 +2,7 @@ import { Grid, VStack } from "@seed-design/react";
 import {
   formatBoothLocation,
   getBoothByTeamId,
+  getBoothMatrixConfig,
   listBooths,
 } from "@/entities/booth";
 import { listBoothMarkers } from "@/entities/booth/model/booth";
@@ -13,11 +14,12 @@ import { StatCard } from "@/shared/ui/stat-card";
 
 export default async function DashboardBoothPage() {
   const teamId = await requireParticipantTeamId();
-  const [booth, booths, markers, teams] = await Promise.all([
+  const [booth, booths, markers, teams, matrixConfig] = await Promise.all([
     getBoothByTeamId(teamId),
     listBooths(),
     listBoothMarkers(),
     listTeams(),
+    getBoothMatrixConfig(),
   ]);
 
   return (
@@ -33,6 +35,7 @@ export default async function DashboardBoothPage() {
         booths={booths}
         teams={teams}
         markers={markers}
+        matrixConfig={matrixConfig}
         highlightTeamId={teamId}
       />
     </VStack>
