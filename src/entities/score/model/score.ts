@@ -1,3 +1,4 @@
+import { groupBy, orderBy, sumBy } from "es-toolkit";
 import { getTeamInvestmentTotals } from "@/entities/investment";
 import { listTeams } from "@/entities/team";
 import { throwIfError } from "@/shared/lib/supabase/query";
@@ -73,10 +74,7 @@ export async function getJudgeScore(teamId: string): Promise<number> {
   throwIfError(error);
   const submitted = (data ?? []).map(mapEvaluation);
   if (submitted.length === 0) return 0;
-  const total = submitted.reduce(
-    (sum, evaluation) => sum + getEvaluationTotal(evaluation),
-    0,
-  );
+  const total = sumBy(submitted, getEvaluationTotal);
   return Math.round(total / submitted.length);
 }
 
@@ -89,19 +87,13 @@ export async function getJudgeScores(): Promise<Record<string, number>> {
     .select("judge_id, team_id, criteria_scores, memo, submitted")
     .eq("submitted", true);
   throwIfError(error);
-  const byTeam = new Map<string, JudgeEvaluation[]>();
-  for (const row of data ?? []) {
-    const evaluation = mapEvaluation(row);
-    const list = byTeam.get(evaluation.teamId) ?? [];
-    list.push(evaluation);
-    byTeam.set(evaluation.teamId, list);
-  }
+  const byTeam = groupBy(
+    (data ?? []).map(mapEvaluation),
+    (evaluation) => evaluation.teamId,
+  );
   return Object.fromEntries(
-    [...byTeam].map(([teamId, evaluations]) => {
-      const total = evaluations.reduce(
-        (sum, evaluation) => sum + getEvaluationTotal(evaluation),
-        0,
-      );
+    Object.entries(byTeam).map(([teamId, evaluations]) => {
+      const total = sumBy(evaluations, getEvaluationTotal);
       return [teamId, Math.round(total / evaluations.length)];
     }),
   );
@@ -158,5 +150,5 @@ export async function getScoreLeaderboard(): Promise<ScoreLeaderboardEntry[]> {
     );
     return { teamId: team.id, investmentScore, judgeScore, finalScore };
   });
-  return entries.sort((a, b) => b.finalScore - a.finalScore);
+  return orderBy(entries, ["finalScore"], ["desc"]);
 }

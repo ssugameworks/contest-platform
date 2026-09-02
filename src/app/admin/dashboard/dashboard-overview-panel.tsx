@@ -2,6 +2,7 @@
 
 import { Box, Grid, HStack, Text, VStack } from "@seed-design/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { orderBy, sumBy } from "es-toolkit";
 import { useRealtimeRefetch } from "@/shared/lib/supabase/use-realtime-refetch";
 import { PageHeader } from "@/shared/ui/page-header";
 import { StatCard } from "@/shared/ui/stat-card";
@@ -43,13 +44,8 @@ export function AdminDashboardOverviewPanel({
     () => queryClient.invalidateQueries({ queryKey: QUERY_KEY }),
   );
 
-  const totalAmount = stats.totals.reduce(
-    (sum, entry) => sum + entry.amount,
-    0,
-  );
-  const investmentLeaderboard = [...stats.totals].sort(
-    (a, b) => b.amount - a.amount,
-  );
+  const totalAmount = sumBy(stats.totals, (entry) => entry.amount);
+  const investmentLeaderboard = orderBy(stats.totals, ["amount"], ["desc"]);
   const topTeam = stats.scoreLeaderboard[0]
     ? stats.teams.find((team) => team.id === stats.scoreLeaderboard[0].teamId)
     : undefined;

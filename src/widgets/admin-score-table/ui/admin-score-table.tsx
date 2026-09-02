@@ -2,6 +2,7 @@
 
 import { Text, VStack } from "@seed-design/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { clamp, orderBy } from "es-toolkit";
 import { useEffect, useState } from "react";
 import { Snackbar, useSnackbarAdapter } from "seed-design/ui/snackbar";
 import { TextField, TextFieldInput } from "seed-design/ui/text-field";
@@ -80,9 +81,7 @@ export function AdminScoreTable() {
   const [weightInput, setWeightInput] = useState(weight);
   useEffect(() => setWeightInput(weight), [weight]);
 
-  const rows = [...entries].sort((a, b) =>
-    sortDesc ? b[sortKey] - a[sortKey] : a[sortKey] - b[sortKey],
-  );
+  const rows = orderBy(entries, [sortKey], [sortDesc ? "desc" : "asc"]);
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -106,9 +105,7 @@ export function AdminScoreTable() {
           max={100}
           value={weightInput}
           onChange={(e) =>
-            setWeightInput(
-              Math.min(100, Math.max(0, e.target.valueAsNumber || 0)),
-            )
+            setWeightInput(clamp(e.target.valueAsNumber || 0, 0, 100))
           }
           onBlur={async () => {
             if (weightInput === weight) return;

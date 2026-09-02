@@ -1,5 +1,6 @@
 // No supabase imports here — client components import this file directly
 // (not via ./index.ts) so they don't pull in the server-only Supabase client.
+import { sumBy } from "es-toolkit";
 import { rubricCriteria, rubricMaxTotal } from "@/entities/rubric";
 
 export interface JudgeEvaluation {
@@ -21,9 +22,9 @@ export function getEvaluationTotal(
   evaluation: JudgeEvaluation | null | undefined,
 ): number {
   if (!evaluation) return 0;
-  const raw = rubricCriteria.reduce(
-    (sum, criterion) => sum + (evaluation.criteriaScores[criterion.id] ?? 0),
-    0,
+  const raw = sumBy(
+    rubricCriteria,
+    (criterion) => evaluation.criteriaScores[criterion.id] ?? 0,
   );
   return rubricMaxTotal > 0 ? Math.round((raw / rubricMaxTotal) * 100) : 0;
 }

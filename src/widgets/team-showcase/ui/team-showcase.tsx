@@ -13,8 +13,10 @@ import {
   Text,
   VStack,
 } from "@seed-design/react";
+import { clamp } from "es-toolkit";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { useLoading } from "react-simplikit";
 import { IconInstagram } from "seed-design/icon/icon-instagram";
 import { IconKakaoTalk } from "seed-design/icon/icon-kakaotalk";
 import { ActionButton } from "seed-design/ui/action-button";
@@ -65,29 +67,25 @@ export function TeamShowcase({
   isJudge: boolean;
 }) {
   const adapter = useSnackbarAdapter();
-  const [isSharingStory, setIsSharingStory] = useState(false);
-  const [isSharingKakao, setIsSharingKakao] = useState(false);
+  const [isSharingStory, startSharingStory] = useLoading();
+  const [isSharingKakao, startSharingKakao] = useLoading();
   const [floorPlanOpen, setFloorPlanOpen] = useState(false);
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
 
-  const shareKakao = async () => {
-    setIsSharingKakao(true);
-    try {
-      await shareToKakaoTalk({
+  const shareKakao = () =>
+    startSharingKakao(
+      shareToKakaoTalk({
         teamName: team.name,
         description: team.description,
         imageUrl: team.imageUrl,
         url: window.location.href,
-      });
-    } catch {
-      adapter.create({
-        onClose: () => {},
-        render: () => <Snackbar message="카카오톡 공유에 실패했어요" />,
-      });
-    } finally {
-      setIsSharingKakao(false);
-    }
-  };
+      }).catch(() => {
+        adapter.create({
+          onClose: () => {},
+          render: () => <Snackbar message="카카오톡 공유에 실패했어요" />,
+        });
+      }),
+    );
 
   const copyLink = async () => {
     await navigator.clipboard.writeText(window.location.href);
@@ -97,10 +95,9 @@ export function TeamShowcase({
     });
   };
 
-  const shareStory = async () => {
-    setIsSharingStory(true);
-    try {
-      const outcome = await shareToInstagramStory({
+  const shareStory = () =>
+    startSharingStory(
+      shareToInstagramStory({
         teamName: team.name,
         tags: team.tags,
         description: team.description,
@@ -111,28 +108,28 @@ export function TeamShowcase({
         markers,
         matrixConfig,
         teamId: team.id,
-      });
-      if (outcome === "downloaded") {
-        adapter.create({
-          onClose: () => {},
-          render: () => (
-            <Snackbar message="스토리 이미지를 저장했어요. 인스타그램에서 직접 올려주세요" />
-          ),
-        });
-      }
-    } catch (error) {
-      // 사용자가 공유 시트를 취소한 경우(AbortError)는 실패가 아니에요.
-      if (error instanceof Error && error.name === "AbortError") return;
-      // 원인이 캔버스 캡처 실패인지, share() 거부인지 콘솔에서 구분할 수 있게 남겨요.
-      console.error("[shareStory]", error);
-      adapter.create({
-        onClose: () => {},
-        render: () => <Snackbar message="스토리 공유에 실패했어요" />,
-      });
-    } finally {
-      setIsSharingStory(false);
-    }
-  };
+      })
+        .then((outcome) => {
+          if (outcome === "downloaded") {
+            adapter.create({
+              onClose: () => {},
+              render: () => (
+                <Snackbar message="스토리 이미지를 저장했어요. 인스타그램에서 직접 올려주세요" />
+              ),
+            });
+          }
+        })
+        .catch((error) => {
+          // 사용자가 공유 시트를 취소한 경우(AbortError)는 실패가 아니에요.
+          if (error instanceof Error && error.name === "AbortError") return;
+          // 원인이 캔버스 캡처 실패인지, share() 거부인지 콘솔에서 구분할 수 있게 남겨요.
+          console.error("[shareStory]", error);
+          adapter.create({
+            onClose: () => {},
+            render: () => <Snackbar message="스토리 공유에 실패했어요" />,
+          });
+        }),
+    );
 
   const bottomAction = isJudge ? null : !currentUser ? (
     <HelpBubbleAnchor
@@ -556,8 +553,8 @@ function ZoomableImage({
     const maxX = (node.offsetWidth * (nextScale - 1)) / 2;
     const maxY = (node.offsetHeight * (nextScale - 1)) / 2;
     return {
-      x: Math.min(maxX, Math.max(-maxX, nextPan.x)),
-      y: Math.min(maxY, Math.max(-maxY, nextPan.y)),
+      x: clamp(nextPan.x, -maxX, maxX),
+      y: clamp(nextPan.y, -maxY, maxY),
     };
   };
 
