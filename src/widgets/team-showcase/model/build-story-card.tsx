@@ -14,17 +14,22 @@ import {
 // 인스타그램 스토리 규격(1080x1920, 9:16) = 카드 실제 크기(360x640) x 3배.
 const PIXEL_RATIO = 3;
 
-export async function buildStoryCard(props: {
-  teamName: string;
-  tags: string[];
-  description: string;
-  logoUrl: string | null;
-  participantNames: string;
-  booths: Booth[];
-  markers?: BoothMarker[];
-  matrixConfig?: BoothMatrixConfig;
-  teamId: string;
-}): Promise<Blob> {
+export async function buildStoryCard(
+  props: {
+    teamName: string;
+    tags: string[];
+    description: string;
+    logoUrl: string | null;
+    participantNames: string;
+    booths: Booth[];
+    markers?: BoothMarker[];
+    matrixConfig?: BoothMatrixConfig;
+    teamId: string;
+  },
+  onProgress?: (percent: number, message: string) => void,
+): Promise<Blob> {
+  onProgress?.(5, "스토리 카드를 준비하고 있어요");
+
   const container = document.createElement("div");
   container.style.position = "fixed";
   container.style.top = "0";
@@ -38,12 +43,14 @@ export async function buildStoryCard(props: {
       // 커밋된 DOM이 레이아웃/페인트까지 끝난 뒤 캡처하도록 한 프레임 더 기다려요.
       requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
     });
+    onProgress?.(25, "팀 정보를 카드에 담았어요");
 
     const node = container.firstElementChild;
     if (!(node instanceof HTMLElement)) {
       throw new Error("카드 DOM을 찾을 수 없어요");
     }
 
+    onProgress?.(55, "공유 이미지를 만들고 있어요");
     const blob = await toBlob(node, {
       width: STORY_CARD_WIDTH,
       height: STORY_CARD_HEIGHT,
@@ -60,6 +67,7 @@ export async function buildStoryCard(props: {
         !(domNode instanceof HTMLImageElement && !domNode.getAttribute("src")),
     });
     if (!blob) throw new Error("이미지 생성에 실패했어요");
+    onProgress?.(90, "공유 이미지를 완성했어요");
     return blob;
   } finally {
     root.unmount();

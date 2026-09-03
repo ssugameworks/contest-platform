@@ -37,7 +37,11 @@ import { PageHeader } from "@/shared/ui/page-header";
 import { BoothFloorPlanSheet } from "@/widgets/booth-floor-plan-dialog";
 import { InvestmentTransactions } from "@/widgets/investment-transactions";
 import { TeamsTopNav } from "@/widgets/teams-top-nav";
-import { shareToInstagramStory } from "../model/share-to-instagram-story";
+import {
+  type PreparedStoryShare,
+  prepareInstagramStory,
+  sharePreparedInstagramStory,
+} from "../model/share-to-instagram-story";
 import { shareToKakaoTalk } from "../model/share-to-kakao-talk";
 
 export function TeamShowcase({
@@ -103,9 +107,54 @@ export function TeamShowcase({
     });
   };
 
+  const showStoryShareFailure = () => {
+    adapter.create({
+      onClose: () => {},
+      render: () => <Snackbar message="스토리 공유에 실패했어요" />,
+    });
+  };
+
+  const sharePreparedStory = (prepared: PreparedStoryShare) =>
+    sharePreparedInstagramStory(prepared)
+      .then((outcome) => {
+        if (outcome === "downloaded") {
+          adapter.create({
+            onClose: () => {},
+            render: () => (
+              <Snackbar message="스토리 이미지를 저장했어요. 인스타그램에서 직접 올려주세요" />
+            ),
+          });
+        }
+      })
+      .catch((error) => {
+        if (error instanceof Error && error.name === "AbortError") return;
+
+        if (error instanceof Error && error.name === "NotAllowedError") {
+          adapter.create({
+            timeout: 10000,
+            onClose: () => {},
+            render: () => (
+              <Snackbar
+                message="이미지가 준비됐어요"
+                actionLabel="공유하기"
+                onAction={() =>
+                  startSharingStory(
+                    sharePreparedStory(prepared).catch(showStoryShareFailure),
+                  )
+                }
+              />
+            ),
+          });
+          return;
+        }
+
+        console.error("[shareStory]", error);
+        showStoryShareFailure();
+      });
+
   const shareStory = () =>
     startSharingStory(
-      shareToInstagramStory({
+      prepareInstagramStory({
         teamName: team.name,
         tags: team.tags,
         description: team.description,
@@ -116,26 +165,19 @@ export function TeamShowcase({
         markers,
         matrixConfig,
         teamId: team.id,
-      })
-        .then((outcome) => {
-          if (outcome === "downloaded") {
-            adapter.create({
-              onClose: () => {},
-              render: () => (
-                <Snackbar message="스토리 이미지를 저장했어요. 인스타그램에서 직접 올려주세요" />
-              ),
-            });
-          }
-        })
-        .catch((error) => {
-          // 사용자가 공유 시트를 취소한 경우(AbortError)는 실패가 아니에요.
-          if (error instanceof Error && error.name === "AbortError") return;
-          // 원인이 캔버스 캡처 실패인지, share() 거부인지 콘솔에서 구분할 수 있게 남겨요.
-          console.error("[shareStory]", error);
+        onProgress: ({ percent, message }) => {
           adapter.create({
+            timeout: 60000,
+            removeDelay: 0,
             onClose: () => {},
-            render: () => <Snackbar message="스토리 공유에 실패했어요" />,
+            render: () => <Snackbar message={`${percent}% · ${message}`} />,
           });
+        },
+      })
+        .then(sharePreparedStory)
+        .catch((error) => {
+          console.error("[shareStory]", error);
+          showStoryShareFailure();
         }),
     );
 

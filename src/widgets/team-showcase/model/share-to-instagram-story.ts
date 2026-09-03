@@ -7,6 +7,17 @@ import { buildStoryCard } from "./build-story-card";
 
 export type ShareOutcome = "share-sheet" | "downloaded";
 
+export interface StoryShareProgress {
+  percent: number;
+  message: string;
+}
+
+export interface PreparedStoryShare {
+  file: File;
+  teamName: string;
+  url: string;
+}
+
 /**
  * 인스타그램 스토리 공유를 시도해요.
  *
@@ -21,7 +32,7 @@ export type ShareOutcome = "share-sheet" | "downloaded";
  *
  * Web Share API가 없으면 이미지를 다운로드시켜서 수동 공유를 유도해요.
  */
-export async function shareToInstagramStory({
+export async function prepareInstagramStory({
   teamName,
   tags,
   description,
@@ -32,6 +43,7 @@ export async function shareToInstagramStory({
   markers = [],
   matrixConfig,
   teamId,
+  onProgress,
 }: {
   teamName: string;
   tags: string[];
@@ -43,28 +55,42 @@ export async function shareToInstagramStory({
   markers?: BoothMarker[];
   matrixConfig?: BoothMatrixConfig;
   teamId: string;
-}): Promise<ShareOutcome> {
-  const blob = await buildStoryCard({
-    teamName,
-    tags,
-    description,
-    logoUrl,
-    participantNames,
-    booths,
-    markers,
-    matrixConfig,
-    teamId,
-  });
+  onProgress?: (progress: StoryShareProgress) => void;
+}): Promise<PreparedStoryShare> {
+  const blob = await buildStoryCard(
+    {
+      teamName,
+      tags,
+      description,
+      logoUrl,
+      participantNames,
+      booths,
+      markers,
+      matrixConfig,
+      teamId,
+    },
+    (percent, message) => onProgress?.({ percent, message }),
+  );
 
   const file = new File([blob], `${teamName}-story.png`, {
     type: "image/png",
   });
+  onProgress?.({ percent: 100, message: "공유 화면을 열고 있어요" });
+
+  return { file, teamName, url };
+}
+
+export async function sharePreparedInstagramStory({
+  file,
+  teamName,
+  url,
+}: PreparedStoryShare): Promise<ShareOutcome> {
   if (navigator.canShare?.({ files: [file] })) {
     await navigator.share({ files: [file], title: teamName, url });
     return "share-sheet";
   }
 
-  const downloadUrl = URL.createObjectURL(blob);
+  const downloadUrl = URL.createObjectURL(file);
   const link = document.createElement("a");
   link.href = downloadUrl;
   link.download = `${teamName}-story.png`;
