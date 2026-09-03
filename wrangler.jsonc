@@ -15,5 +15,11 @@
       "binding": "WORKER_SELF_REFERENCE",
       "service": "contest-platform"
     }
-  ]
+  ],
+  "observability": {
+    "logs": {
+      "enabled": true,
+      "invocation_logs": true
+    }
+  }
 }
