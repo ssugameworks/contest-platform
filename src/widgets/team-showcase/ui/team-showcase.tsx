@@ -7,7 +7,6 @@ import {
   Badge,
   Box,
   Divider,
-  Grid,
   HStack,
   ScrollFog,
   Text,
@@ -16,7 +15,7 @@ import {
 import { clamp } from "es-toolkit";
 import Link from "next/link";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { useLoading } from "react-simplikit";
+import { useIntersectionObserver, useLoading } from "react-simplikit";
 import { IconInstagram } from "seed-design/icon/icon-instagram";
 import { IconKakaoTalk } from "seed-design/icon/icon-kakaotalk";
 import { ActionButton } from "seed-design/ui/action-button";
@@ -35,9 +34,9 @@ import type { CurrentUser } from "@/entities/session";
 import type { Team } from "@/entities/team";
 import { InvestButton } from "@/features/invest-in-team";
 import { PageHeader } from "@/shared/ui/page-header";
-import { StatCard } from "@/shared/ui/stat-card";
 import { BoothFloorPlanSheet } from "@/widgets/booth-floor-plan-dialog";
 import { InvestmentTransactions } from "@/widgets/investment-transactions";
+import { TeamsTopNav } from "@/widgets/teams-top-nav";
 import { shareToInstagramStory } from "../model/share-to-instagram-story";
 import { shareToKakaoTalk } from "../model/share-to-kakao-talk";
 
@@ -71,6 +70,15 @@ export function TeamShowcase({
   const [isSharingKakao, startSharingKakao] = useLoading();
   const [floorPlanOpen, setFloorPlanOpen] = useState(false);
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+
+  // 팀명이 적힌 인라인 헤더가 스크롤에 밀려 화면 밖으로 나가면, 그 대신
+  // 상단 고정 네비게이션에 팀명을 띄워줌 (완전히 가려졌을 때만 전환되도록
+  // threshold 기본값 0 사용).
+  const [nameHeaderVisible, setNameHeaderVisible] = useState(true);
+  const nameHeaderRef = useIntersectionObserver<HTMLDivElement>(
+    (entry) => setNameHeaderVisible(entry.isIntersecting),
+    { threshold: 0 },
+  );
 
   const shareKakao = () =>
     startSharingKakao(
@@ -172,6 +180,12 @@ export function TeamShowcase({
       style={{ flexDirection: "column", height: "100dvh" }}
       width="full"
     >
+      <TeamsTopNav
+        variant="standard"
+        title={nameHeaderVisible ? undefined : team.name}
+        elevated={!nameHeaderVisible}
+      />
+
       <Box maxHeight="full" overflowY="auto" width="full">
         <ScrollFog placement={["top", "bottom"]}>
           <VStack
@@ -184,7 +198,7 @@ export function TeamShowcase({
             pb="80px"
           >
             {/* 헤더 */}
-            <VStack gap="x3" width="full">
+            <VStack ref={nameHeaderRef} gap="x3" width="full">
               <HStack gap="x2" wrap>
                 {team.tags.map((tag) => (
                   <Badge key={tag} tone="neutral" variant="weak">
@@ -194,42 +208,58 @@ export function TeamShowcase({
               </HStack>
               <HStack gap="x3" align="center" width="full">
                 <Avatar
-                  size="48"
+                  size="64"
                   src={team.imageUrl ?? undefined}
                   crossOrigin="anonymous"
-                  fallback={<IdentityPlaceholder />}
+                  fallback={<IdentityPlaceholder identity="business" />}
                 />
-                <PageHeader title={team.name} description={team.description} />
+                <PageHeader
+                  title={team.name}
+                  description={team.description}
+                  titleTextStyle="screenTitle"
+                />
               </HStack>
             </VStack>
 
             <Divider />
 
-            {/* 통계 */}
-            <Grid columns={4} gap="x4" width="full">
-              <StatCard label="모금액" value={`${amount.toLocaleString()}원`} />
-              <StatCard label="투자자 수" value={`${investorCount}명`} />
-              <StatCard label="투자 등수" value={`${rank}위`} />
+            {/* 통계 — 모금액/투자자 수/투자 등수/부스 위치를 한 줄에 놓고
+                세로 Divider로 단을 구분함 */}
+            <HStack width="full">
+              <StatColumn
+                label="모금액"
+                value={`${amount.toLocaleString()}원`}
+              />
+              <Divider orientation="vertical" />
+              <StatColumn label="투자자 수" value={`${investorCount}명`} />
+              <Divider orientation="vertical" />
+              <StatColumn label="투자 등수" value={`${rank}위`} />
+              <Divider orientation="vertical" />
               <Box
                 onClick={() => setFloorPlanOpen(true)}
-                style={{ cursor: "pointer", position: "relative" }}
+                style={{
+                  cursor: "pointer",
+                  position: "relative",
+                  flexGrow: 1,
+                  flexBasis: 0,
+                }}
               >
-                <StatCard
+                <StatColumn
                   label="부스 위치"
                   value={booth ? formatBoothLocation(booth) : "-"}
                 />
                 <IconChevronRightSmallLine
-                  width={18}
-                  height={18}
+                  width={16}
+                  height={16}
                   style={{
                     position: "absolute",
-                    top: 10,
-                    right: 10,
+                    top: 0,
+                    right: 0,
                     color: "var(--seed-color-fg-neutral-subtle)",
                   }}
                 />
               </Box>
-            </Grid>
+            </HStack>
 
             <Divider />
 
@@ -241,6 +271,8 @@ export function TeamShowcase({
                   {members.map((member) => (
                     <Avatar
                       key={member.studentId}
+                      src={member.avatarUrl ?? undefined}
+                      crossOrigin="anonymous"
                       fallback={<IdentityPlaceholder />}
                     />
                   ))}
@@ -257,25 +289,36 @@ export function TeamShowcase({
             {team.screenshotUrls.length > 0 && (
               <VStack gap="x3" width="full">
                 <Text textStyle="t5Bold">제품 화면</Text>
-                <ScrollFog placement={["left", "right"]}>
+                <ScrollFog
+                  placement={["left", "right"]}
+                  style={{
+                    overflowY: "hidden",
+                    overflowX: "auto",
+                    scrollSnapType: "x mandatory",
+                  }}
+                >
                   <HStack
                     gap="x3"
+                    align="center"
                     style={{
-                      overflowX: "auto",
-                      scrollSnapType: "x mandatory",
-                      paddingInline: "12px",
+                      width: "max-content",
+                      paddingLeft: "24px",
+                      paddingRight: "24px",
+                      paddingTop: "12px",
+                      paddingBottom: "16px",
                     }}
                   >
                     {team.screenshotUrls.map((url, index) => (
                       <Box
                         key={url}
-                        borderRadius="r2"
                         onClick={() => setPreviewIndex(index)}
                         style={{
                           flexShrink: 0,
                           overflow: "hidden",
                           scrollSnapAlign: "center",
                           cursor: "pointer",
+                          borderRadius: 20,
+                          isolation: "isolate",
                         }}
                       >
                         {/* biome-ignore lint/performance/noImgElement: 스마트폰/데스크톱
@@ -285,11 +328,12 @@ export function TeamShowcase({
                           alt={`${team.name} 제품 화면`}
                           style={{
                             display: "block",
-                            height: 360,
+                            height: "auto",
+                            maxHeight: "min(360px, 60vh)",
+                            maxWidth: "min(85vw, 640px)",
                             width: "auto",
-                            maxWidth: "min(80vw, 640px)",
-                            maxHeight: "60vh",
                             objectFit: "contain",
+                            borderRadius: 20,
                           }}
                         />
                       </Box>
@@ -299,15 +343,15 @@ export function TeamShowcase({
               </VStack>
             )}
 
-            {/* 랜딩페이지 */}
-            {team.landingPageUrl && (
+            {/* GitHub 페이지 */}
+            {team.githubUrl && (
               <ActionButton variant="neutralWeak" className="w-full" asChild>
                 <a
-                  href={team.landingPageUrl}
+                  href={team.githubUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  팀 랜딩페이지 방문하기
+                  GitHub 페이지 방문하기
                 </a>
               </ActionButton>
             )}
@@ -386,6 +430,19 @@ export function TeamShowcase({
         />
       )}
     </Box>
+  );
+}
+
+// 세로 Divider로 나뉜 통계 한 칸. 폭을 균등하게 나눠 가지도록
+// flexBasis를 0으로 둬요.
+function StatColumn({ label, value }: { label: string; value: string }) {
+  return (
+    <VStack gap="x1" align="center" flexGrow={1} style={{ flexBasis: 0 }}>
+      <Text textStyle="t3Regular" color="fg.neutralSubtle">
+        {label}
+      </Text>
+      <Text textStyle="t7Bold">{value}</Text>
+    </VStack>
   );
 }
 

@@ -14,6 +14,7 @@ export type CurrentUser =
       studentId: string;
       name: string;
       teamId: string | null;
+      avatarUrl: string | null;
     }
   | { kind: "investor"; studentId: string; name: string; investorId: string };
 
@@ -33,7 +34,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
 
   const { data: participant, error: participantError } = await supabase
     .from("participants")
-    .select("student_id, name, team_members(team_id)")
+    .select("student_id, name, avatar_url, team_members(team_id)")
     .eq("student_id", studentId)
     .maybeSingle();
   throwIfError(participantError);
@@ -43,6 +44,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
       studentId: participant.student_id,
       name: participant.name,
       teamId: participant.team_members?.team_id ?? null,
+      avatarUrl: participant.avatar_url,
     };
   }
 
@@ -74,4 +76,15 @@ export async function requireParticipantTeamId(): Promise<string> {
     redirect("/login");
   }
   return user.teamId;
+}
+
+// Guards participant self-service actions (editing my name/avatar/password)
+// that don't depend on team assignment — unlike requireParticipantTeamId,
+// a participant without a team can still use these.
+export async function requireParticipantId(): Promise<string> {
+  const user = await getCurrentUser();
+  if (!user || user.kind !== "participant") {
+    redirect("/login");
+  }
+  return user.studentId;
 }

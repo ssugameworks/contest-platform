@@ -1,6 +1,6 @@
 "use client";
 
-import { Text, VStack } from "@seed-design/react";
+import { Divider, Text, VStack } from "@seed-design/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { clamp, orderBy } from "es-toolkit";
 import { useEffect, useState } from "react";
@@ -137,6 +137,8 @@ export function AdminScoreTable() {
           }}
         />
       </TextField>
+
+      <Divider />
 
       <Table>
         <TableHead>

@@ -115,10 +115,13 @@ export function StoryCardTemplate({
             size="80"
             src={logoUrl}
             crossOrigin="anonymous"
-            fallback={<IdentityPlaceholder />}
+            fallback={<IdentityPlaceholder identity="business" />}
           />
         ) : (
-          <Avatar size="80" fallback={<IdentityPlaceholder />} />
+          <Avatar
+            size="80"
+            fallback={<IdentityPlaceholder identity="business" />}
+          />
         )}
       </HStack>
     </Box>

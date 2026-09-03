@@ -6,7 +6,7 @@ export interface Team {
   name: string;
   description: string;
   imageUrl: string | null;
-  landingPageUrl: string | null;
+  githubUrl: string | null;
   memberIds: string[];
   tags: string[];
   screenshotUrls: string[];
@@ -17,7 +17,7 @@ interface TeamRow {
   name: string;
   description: string;
   image_url: string | null;
-  landing_page_url: string | null;
+  github_url: string | null;
   tags: string[] | null;
   screenshot_urls: string[] | null;
   team_members: { student_id: string }[];
@@ -29,7 +29,7 @@ function mapTeam(row: TeamRow): Team {
     name: row.name,
     description: row.description,
     imageUrl: row.image_url,
-    landingPageUrl: row.landing_page_url,
+    githubUrl: row.github_url,
     memberIds: row.team_members.map((member) => member.student_id),
     tags: row.tags ?? [],
     screenshotUrls: row.screenshot_urls ?? [],
@@ -37,7 +37,7 @@ function mapTeam(row: TeamRow): Team {
 }
 
 const TEAM_SELECT =
-  "id, name, description, image_url, landing_page_url, tags, screenshot_urls, team_members(student_id)";
+  "id, name, description, image_url, github_url, tags, screenshot_urls, team_members(student_id)";
 
 export async function getTeamById(id: string): Promise<Team | null> {
   const supabase = await createClient();

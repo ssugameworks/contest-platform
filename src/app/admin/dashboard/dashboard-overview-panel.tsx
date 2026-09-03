@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, Grid, HStack, Text, VStack } from "@seed-design/react";
+import { Box, Divider, Grid, HStack, Text, VStack } from "@seed-design/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { orderBy, sumBy } from "es-toolkit";
 import { useRealtimeRefetch } from "@/shared/lib/supabase/use-realtime-refetch";
@@ -69,6 +69,8 @@ export function AdminDashboardOverviewPanel({
         <StatCard label="현재 1위 팀" value={topTeam?.name ?? "-"} />
       </Grid>
 
+      <Divider />
+
       <VStack gap="x3" width="full">
         <HStack gap="x2" align="center" justify="space-between" width="full">
           <HStack gap="x2" align="center">
@@ -108,6 +110,8 @@ export function AdminDashboardOverviewPanel({
           </TableBody>
         </Table>
       </VStack>
+
+      <Divider />
 
       <VStack gap="x3" width="full">
         <Text textStyle="t5Bold">최종 순위 (상위 5팀)</Text>

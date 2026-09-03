@@ -1,6 +1,13 @@
 "use client";
 
-import { Box, HStack, ResponsivePair, Text, VStack } from "@seed-design/react";
+import {
+  Box,
+  Divider,
+  HStack,
+  ResponsivePair,
+  Text,
+  VStack,
+} from "@seed-design/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useBooleanState, useSet } from "react-simplikit";
@@ -373,6 +380,8 @@ export function AdminBoothGrid() {
           </ActionButton>
         </HStack>
       </VStack>
+
+      <Divider />
 
       <HStack gap="x4" wrap>
         {(

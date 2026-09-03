@@ -12,7 +12,6 @@ const urlSchema = z
 export const manageTeamSchema = z.object({
   name: z.string().min(1, "팀 이름을 입력해주세요"),
   description: z.string().min(1, "팀 소개를 입력해주세요"),
-  tags: z.string().optional(),
-  landingPageUrl: urlSchema,
+  githubUrl: urlSchema,
 });
 export type ManageTeamInput = z.infer<typeof manageTeamSchema>;
