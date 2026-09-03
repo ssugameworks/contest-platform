@@ -1,3 +1,4 @@
+export type { ActionResult } from "./model/actions";
 export {
   investorLoginOrSignupAction,
   logoutAction,

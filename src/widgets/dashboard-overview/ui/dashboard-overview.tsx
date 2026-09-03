@@ -101,7 +101,11 @@ export async function DashboardOverview({ teamId }: { teamId: string }) {
 
       <AvatarStack size="36">
         {members.map((member) => (
-          <Avatar key={member.studentId} fallback={<IdentityPlaceholder />} />
+          <Avatar
+            key={member.studentId}
+            src={member.avatarUrl ?? undefined}
+            fallback={<IdentityPlaceholder />}
+          />
         ))}
       </AvatarStack>
 

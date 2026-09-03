@@ -16,7 +16,7 @@ import {
   type ManageTeamInput,
   manageTeamSchema,
 } from "@/entities/team/model/schema";
-import { TeamImageUploadField } from "@/features/manage-team";
+import { TagInputField, TeamImageUploadField } from "@/features/manage-team";
 import { updateMyTeamAction } from "../model/actions";
 
 export function EditTeamProfileForm({ team }: { team: Team }) {
@@ -27,6 +27,7 @@ export function EditTeamProfileForm({ team }: { team: Team }) {
   const [screenshotUrls, setScreenshotUrls] = useState<string[]>(
     team.screenshotUrls,
   );
+  const [tags, setTags] = useState<string[]>(team.tags);
   const {
     register,
     handleSubmit,
@@ -36,24 +37,16 @@ export function EditTeamProfileForm({ team }: { team: Team }) {
     defaultValues: {
       name: team.name,
       description: team.description,
-      tags: team.tags.join(", "),
-      landingPageUrl: team.landingPageUrl ?? "",
+      githubUrl: team.githubUrl ?? "",
     },
   });
 
   const onSubmit = handleSubmit(async (data) => {
-    const tags = data.tags
-      ? data.tags
-          .split(",")
-          .map((tag) => tag.trim())
-          .filter(Boolean)
-      : [];
-
     await updateMyTeamAction({
       name: data.name,
       description: data.description,
       imageUrl: imageUrl[0] ?? null,
-      landingPageUrl: data.landingPageUrl || null,
+      githubUrl: data.githubUrl || null,
       tags,
       screenshotUrls,
     });
@@ -100,18 +93,7 @@ export function EditTeamProfileForm({ team }: { team: Team }) {
           onUrlsChange={setImageUrl}
         />
 
-        <TextField
-          label="태그"
-          description="쉼표(,)로 구분해서 입력해주세요"
-          defaultValue={team.tags.join(", ")}
-          invalid={!!errors.tags}
-          errorMessage={errors.tags?.message}
-        >
-          <TextFieldInput
-            placeholder="AI, 커머스, 캠퍼스"
-            {...register("tags")}
-          />
-        </TextField>
+        <TagInputField label="태그" tags={tags} onTagsChange={setTags} />
 
         <TeamImageUploadField
           label="제품 스크린샷"
@@ -121,16 +103,16 @@ export function EditTeamProfileForm({ team }: { team: Team }) {
         />
 
         <TextField
-          label="랜딩페이지 링크"
-          description="팀 소개 페이지나 서비스 링크가 있다면 입력해주세요"
-          defaultValue={team.landingPageUrl ?? ""}
-          invalid={!!errors.landingPageUrl}
-          errorMessage={errors.landingPageUrl?.message}
+          label="GitHub 페이지"
+          description="팀 프로젝트의 GitHub 저장소 링크를 입력해주세요"
+          defaultValue={team.githubUrl ?? ""}
+          invalid={!!errors.githubUrl}
+          errorMessage={errors.githubUrl?.message}
         >
           <TextFieldInput
             type="url"
-            placeholder="https://example.com"
-            {...register("landingPageUrl")}
+            placeholder="https://github.com/team/repo"
+            {...register("githubUrl")}
           />
         </TextField>
 

@@ -192,16 +192,19 @@ export type Database = {
       };
       participants: {
         Row: {
+          avatar_url: string | null;
           name: string;
           password_hash: string | null;
           student_id: string;
         };
         Insert: {
+          avatar_url?: string | null;
           name: string;
           password_hash?: string | null;
           student_id: string;
         };
         Update: {
+          avatar_url?: string | null;
           name?: string;
           password_hash?: string | null;
           student_id?: string;
@@ -291,9 +294,9 @@ export type Database = {
         Row: {
           created_at: string;
           description: string;
+          github_url: string | null;
           id: string;
           image_url: string | null;
-          landing_page_url: string | null;
           name: string;
           screenshot_urls: string[];
           tags: string[];
@@ -301,9 +304,9 @@ export type Database = {
         Insert: {
           created_at?: string;
           description: string;
+          github_url?: string | null;
           id?: string;
           image_url?: string | null;
-          landing_page_url?: string | null;
           name: string;
           screenshot_urls?: string[];
           tags?: string[];
@@ -311,9 +314,9 @@ export type Database = {
         Update: {
           created_at?: string;
           description?: string;
+          github_url?: string | null;
           id?: string;
           image_url?: string | null;
-          landing_page_url?: string | null;
           name?: string;
           screenshot_urls?: string[];
           tags?: string[];

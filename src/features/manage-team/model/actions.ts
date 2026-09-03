@@ -8,7 +8,7 @@ export interface TeamWriteInput {
   name: string;
   description: string;
   imageUrl: string | null;
-  landingPageUrl: string | null;
+  githubUrl: string | null;
   tags: string[];
   screenshotUrls: string[];
 }
@@ -104,7 +104,7 @@ export async function createTeamAction(input: TeamWriteInput): Promise<string> {
       name: input.name,
       description: input.description,
       image_url: input.imageUrl,
-      landing_page_url: input.landingPageUrl,
+      github_url: input.githubUrl,
       tags: input.tags,
       screenshot_urls: input.screenshotUrls,
     })
@@ -126,7 +126,7 @@ export async function updateTeamAction(
       name: input.name,
       description: input.description,
       image_url: input.imageUrl,
-      landing_page_url: input.landingPageUrl,
+      github_url: input.githubUrl,
       tags: input.tags,
       screenshot_urls: input.screenshotUrls,
     })

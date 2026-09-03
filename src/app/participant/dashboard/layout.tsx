@@ -2,6 +2,7 @@ import {
   IconGridFill,
   IconMapLocationpinFill,
   IconPeople3Fill,
+  IconPersonCircleFill,
   IconWonCircleFill,
 } from "@karrotmarket/react-monochrome-icon";
 import type { Metadata } from "next";
@@ -10,6 +11,7 @@ import { IdentityPlaceholder } from "seed-design/ui/identity-placeholder";
 import { requireParticipantTeamId } from "@/entities/session/model/session";
 import { getTeamById } from "@/entities/team";
 import { DashboardSideNav } from "@/widgets/dashboard-sidenav";
+import { TeamPageFab } from "./team-page-fab";
 
 export const metadata: Metadata = { title: "참가자 대시보드" };
 
@@ -19,6 +21,11 @@ const NAV_ITEMS = [
     label: "팀 프로필",
     href: "/participant/dashboard/team",
     icon: <IconPeople3Fill />,
+  },
+  {
+    label: "내 프로필",
+    href: "/participant/dashboard/profile",
+    icon: <IconPersonCircleFill />,
   },
   {
     label: "투자 현황",
@@ -39,17 +46,21 @@ export default async function DashboardLayout({
   const team = await getTeamById(teamId);
 
   return (
-    <DashboardSideNav
-      navItems={NAV_ITEMS}
-      headerContent={
-        <Avatar
-          size="36"
-          src={team?.imageUrl ?? undefined}
-          fallback={<IdentityPlaceholder />}
-        />
-      }
-    >
-      {children}
-    </DashboardSideNav>
+    <>
+      <DashboardSideNav
+        navItems={NAV_ITEMS}
+        headerContent={
+          <Avatar
+            size="36"
+            src={team?.imageUrl ?? undefined}
+            fallback={<IdentityPlaceholder />}
+          />
+        }
+      >
+        {children}
+      </DashboardSideNav>
+
+      <TeamPageFab teamId={teamId} />
+    </>
   );
 }
