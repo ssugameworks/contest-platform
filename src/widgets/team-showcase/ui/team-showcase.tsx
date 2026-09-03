@@ -208,12 +208,16 @@ export function TeamShowcase({
               </HStack>
               <HStack gap="x3" align="center" width="full">
                 <Avatar
-                  size="48"
+                  size="64"
                   src={team.imageUrl ?? undefined}
                   crossOrigin="anonymous"
-                  fallback={<IdentityPlaceholder />}
+                  fallback={<IdentityPlaceholder identity="business" />}
                 />
-                <PageHeader title={team.name} description={team.description} />
+                <PageHeader
+                  title={team.name}
+                  description={team.description}
+                  titleTextStyle="screenTitle"
+                />
               </HStack>
             </VStack>
 
@@ -285,14 +289,23 @@ export function TeamShowcase({
             {team.screenshotUrls.length > 0 && (
               <VStack gap="x3" width="full">
                 <Text textStyle="t5Bold">제품 화면</Text>
-                <ScrollFog placement={["left", "right"]}>
+                <ScrollFog
+                  placement={["left", "right"]}
+                  style={{
+                    overflowY: "hidden",
+                    overflowX: "auto",
+                    scrollSnapType: "x mandatory",
+                  }}
+                >
                   <HStack
                     gap="x3"
+                    align="center"
                     style={{
-                      overflowX: "auto",
-                      scrollSnapType: "x mandatory",
+                      width: "max-content",
                       paddingLeft: "24px",
-                      paddingRight: "12px",
+                      paddingRight: "24px",
+                      paddingTop: "12px",
+                      paddingBottom: "16px",
                     }}
                   >
                     {team.screenshotUrls.map((url, index) => (
@@ -305,6 +318,7 @@ export function TeamShowcase({
                           scrollSnapAlign: "center",
                           cursor: "pointer",
                           borderRadius: 20,
+                          isolation: "isolate",
                         }}
                       >
                         {/* biome-ignore lint/performance/noImgElement: 스마트폰/데스크톱
@@ -314,11 +328,12 @@ export function TeamShowcase({
                           alt={`${team.name} 제품 화면`}
                           style={{
                             display: "block",
-                            height: 360,
+                            height: "auto",
+                            maxHeight: "min(360px, 60vh)",
+                            maxWidth: "min(85vw, 640px)",
                             width: "auto",
-                            maxWidth: "min(80vw, 640px)",
-                            maxHeight: "60vh",
                             objectFit: "contain",
+                            borderRadius: 20,
                           }}
                         />
                       </Box>

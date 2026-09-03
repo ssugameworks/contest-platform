@@ -67,13 +67,13 @@ export default async function TeamListPage(props: PageProps<"/teams">) {
                         <Avatar
                           size="56"
                           src={team.imageUrl ?? undefined}
-                          fallback={<IdentityPlaceholder />}
+                          fallback={<IdentityPlaceholder identity="business" />}
                         />
                         <VStack gap="x1" flexGrow={1} style={{ minWidth: 0 }}>
                           {(team.tags.length > 0 || booth) && (
                             <HStack gap="x1" wrap>
                               {booth && (
-                                <Badge tone="brand" variant="weak">
+                                <Badge tone="brand" variant="solid">
                                   {formatBoothLocation(booth)}
                                 </Badge>
                               )}

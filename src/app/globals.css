@@ -151,6 +151,7 @@
   }
   html {
     @apply font-sans;
+    background: var(--seed-color-bg-layer-default);
   }
 }
 

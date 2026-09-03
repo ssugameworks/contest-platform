@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { VStack } from "@seed-design/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { sum } from "es-toolkit";
 import { forwardRef, useEffect, useImperativeHandle } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import {
@@ -50,10 +51,7 @@ export const EvaluateTeamForm = forwardRef<
 
   const watchedScores = useWatch({ control, name: "criteriaScores" });
   const total = Math.round(
-    (Object.values(watchedScores ?? {}).reduce(
-      (sum: number, v) => sum + (v || 0),
-      0,
-    ) /
+    (sum(Object.values(watchedScores ?? {}).map((v) => v || 0)) /
       rubricMaxTotal) *
       100,
   );

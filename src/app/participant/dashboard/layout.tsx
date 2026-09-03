@@ -53,7 +53,7 @@ export default async function DashboardLayout({
           <Avatar
             size="36"
             src={team?.imageUrl ?? undefined}
-            fallback={<IdentityPlaceholder />}
+            fallback={<IdentityPlaceholder identity="business" />}
           />
         }
       >
