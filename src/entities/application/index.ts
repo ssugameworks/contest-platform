@@ -1,10 +1,15 @@
 export {
   checkStudentIdAvailableAction,
+  deleteApplicationAction,
+  listApplicationsAction,
   submitApplicationAction,
+  updateApplicationStatusAction,
 } from "./model/actions";
 export type {
+  Application,
   ApplicationInput,
   ApplicationRole,
+  ApplicationStatus,
   ApplicationType,
   TeamMemberInput,
 } from "./model/application";
