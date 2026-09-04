@@ -13,3 +13,8 @@ export {
   type College,
   departmentsFor,
 } from "./model/college-department";
+export {
+  type ApplicationFormInput,
+  applicationSchema,
+  ROLE_OPTIONS,
+} from "./model/schema";
