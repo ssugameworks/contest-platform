@@ -60,6 +60,83 @@ export type Database = {
         };
         Relationships: [];
       };
+      application_team_members: {
+        Row: {
+          application_id: string;
+          college: string;
+          department: string;
+          id: string;
+          name: string;
+          position: number;
+        };
+        Insert: {
+          application_id: string;
+          college: string;
+          department: string;
+          id?: string;
+          name: string;
+          position: number;
+        };
+        Update: {
+          application_id?: string;
+          college?: string;
+          department?: string;
+          id?: string;
+          name?: string;
+          position?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "application_team_members_application_id_fkey";
+            columns: ["application_id"];
+            isOneToOne: false;
+            referencedRelation: "applications";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      applications: {
+        Row: {
+          application_type: string;
+          birth_date: string;
+          college: string;
+          created_at: string;
+          department: string;
+          id: string;
+          name: string;
+          phone: string;
+          role: string;
+          status: string;
+          student_id: string;
+        };
+        Insert: {
+          application_type: string;
+          birth_date: string;
+          college: string;
+          created_at?: string;
+          department: string;
+          id?: string;
+          name: string;
+          phone: string;
+          role: string;
+          status?: string;
+          student_id: string;
+        };
+        Update: {
+          application_type?: string;
+          birth_date?: string;
+          college?: string;
+          created_at?: string;
+          department?: string;
+          id?: string;
+          name?: string;
+          phone?: string;
+          role?: string;
+          status?: string;
+          student_id?: string;
+        };
+        Relationships: [];
+      };
       booth_markers: {
         Row: {
           kind: string;
