@@ -1,4 +1,5 @@
 import {
+  IconCheckmarkClipboardFill,
   IconGridFill,
   IconMapLocationpinFill,
   IconPeople3Fill,
@@ -16,6 +17,11 @@ export const metadata: Metadata = { title: "관리자 대시보드" };
 
 const NAV_ITEMS = [
   { label: "개요", href: "/admin/dashboard", icon: <IconGridFill /> },
+  {
+    label: "지원서 관리",
+    href: "/admin/dashboard/applications",
+    icon: <IconCheckmarkClipboardFill />,
+  },
   {
     label: "참가자 관리",
     href: "/admin/dashboard/participants",

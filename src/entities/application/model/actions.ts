@@ -1,10 +1,16 @@
 "use server";
 
 import type { ActionResult } from "@/entities/session";
+import { requireAdmin } from "@/entities/staff/model/session";
 import {
+  type Application,
   type ApplicationInput,
+  type ApplicationStatus,
   createApplication,
+  deleteApplication,
   findApplicationByStudentId,
+  listApplications,
+  updateApplicationStatus,
 } from "./application";
 import { applicationSchema } from "./schema";
 
@@ -56,4 +62,22 @@ export async function submitApplicationAction(
         : "제출에 실패했어요. 잠시 후 다시 시도해주세요";
     return { ok: false, message };
   }
+}
+
+export async function listApplicationsAction(): Promise<Application[]> {
+  await requireAdmin();
+  return listApplications();
+}
+
+export async function updateApplicationStatusAction(
+  id: string,
+  status: ApplicationStatus,
+): Promise<void> {
+  await requireAdmin();
+  await updateApplicationStatus(id, status);
+}
+
+export async function deleteApplicationAction(id: string): Promise<void> {
+  await requireAdmin();
+  await deleteApplication(id);
 }
