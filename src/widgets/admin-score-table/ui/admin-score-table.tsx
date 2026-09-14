@@ -1,7 +1,7 @@
 "use client";
 
 import { Divider, Text, VStack } from "@seed-design/react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { clamp, orderBy } from "es-toolkit";
 import { useEffect, useState } from "react";
 import { Snackbar, useSnackbarAdapter } from "seed-design/ui/snackbar";
@@ -16,6 +16,8 @@ import type { JudgeEvaluation } from "@/entities/score/model/pure";
 import { getEvaluationTotal } from "@/entities/score/model/pure";
 import { listJudgesAction } from "@/entities/staff/model/actions";
 import { listTeamsAction } from "@/entities/team/model/actions";
+import { useSuspenseQuery } from "@/shared/lib/query/use-suspense-query";
+import { SuspenseQueryBoundary } from "@/shared/ui/suspense-query-boundary";
 import {
   Table,
   TableBody,
@@ -51,30 +53,38 @@ function JudgeCell({
 }
 
 export function AdminScoreTable() {
+  return (
+    <SuspenseQueryBoundary>
+      <AdminScoreTableContent />
+    </SuspenseQueryBoundary>
+  );
+}
+
+function AdminScoreTableContent() {
   const queryClient = useQueryClient();
   const adapter = useSnackbarAdapter();
   const [sortKey, setSortKey] = useState<SortKey>("finalScore");
   const [sortDesc, setSortDesc] = useState(true);
 
-  const { data: entries = [] } = useQuery({
+  const { data: entries } = useSuspenseQuery({
     queryKey: ["score-leaderboard"],
     queryFn: getScoreLeaderboardAction,
   });
-  const { data: teams = [] } = useQuery({
+  const { data: teams } = useSuspenseQuery({
     queryKey: ["teams"],
     queryFn: listTeamsAction,
   });
-  const { data: judges = [] } = useQuery({
+  const { data: judges } = useSuspenseQuery({
     queryKey: ["judges"],
     queryFn: listJudgesAction,
   });
   // One query for every judge×team evaluation, instead of a request per
   // table cell.
-  const { data: evaluations = [] } = useQuery({
+  const { data: evaluations } = useSuspenseQuery({
     queryKey: ["evaluations"],
     queryFn: listEvaluationsAction,
   });
-  const { data: weight = 50 } = useQuery({
+  const { data: weight } = useSuspenseQuery({
     queryKey: ["investment-weight"],
     queryFn: getInvestmentWeightAction,
   });

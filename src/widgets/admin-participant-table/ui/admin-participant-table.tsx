@@ -1,17 +1,26 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import type { Participant } from "@/entities/participant";
 import { listParticipantsAction } from "@/entities/participant/model/actions";
 import { listTeamsAction } from "@/entities/team/model/actions";
 import { ManageParticipantForm } from "@/features/manage-participant";
 import { deleteParticipantAction } from "@/features/manage-participant/model/actions";
+import { useSuspenseQuery } from "@/shared/lib/query/use-suspense-query";
 import { AdminCrudTable } from "@/shared/ui/admin-crud-table";
+import { SuspenseQueryBoundary } from "@/shared/ui/suspense-query-boundary";
 
 const QUERY_KEY = ["admin-participants"];
 
 export function AdminParticipantTable() {
-  const { data: teams = [] } = useQuery({
+  return (
+    <SuspenseQueryBoundary>
+      <AdminParticipantTableContent />
+    </SuspenseQueryBoundary>
+  );
+}
+
+function AdminParticipantTableContent() {
+  const { data: teams } = useSuspenseQuery({
     queryKey: ["teams"],
     queryFn: listTeamsAction,
   });

@@ -2,7 +2,7 @@
 
 import IconDocumentTrayLine from "@karrotmarket/react-monochrome-icon/IconDocumentTrayLine";
 import { Box, HStack, ResponsivePair, Text, VStack } from "@seed-design/react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { ActionButton } from "seed-design/ui/action-button";
 import {
@@ -37,6 +37,8 @@ import {
   ROLE_OPTIONS,
   updateApplicationStatusAction,
 } from "@/entities/application";
+import { useSuspenseQuery } from "@/shared/lib/query/use-suspense-query";
+import { SuspenseQueryBoundary } from "@/shared/ui/suspense-query-boundary";
 import {
   Table,
   TableBody,
@@ -139,13 +141,21 @@ function downloadCsv(csv: string, filename: string): void {
 }
 
 export function AdminApplicationTable() {
+  return (
+    <SuspenseQueryBoundary>
+      <AdminApplicationTableContent />
+    </SuspenseQueryBoundary>
+  );
+}
+
+function AdminApplicationTableContent() {
   const queryClient = useQueryClient();
   const adapter = useSnackbarAdapter();
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Application | undefined>(undefined);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const { data: applications = [], isError } = useQuery({
+  const { data: applications } = useSuspenseQuery({
     queryKey: QUERY_KEY,
     queryFn: listApplicationsAction,
   });
@@ -235,12 +245,7 @@ export function AdminApplicationTable() {
           </TableRow>
         </TableHead>
         <TableBody>
-          {isError && rows.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={7}>목록을 불러오지 못했어요</TableCell>
-            </TableRow>
-          )}
-          {rows.length === 0 && !isError && (
+          {rows.length === 0 && (
             <TableRow>
               <TableCell colSpan={7}>아직 지원서가 없어요</TableCell>
             </TableRow>

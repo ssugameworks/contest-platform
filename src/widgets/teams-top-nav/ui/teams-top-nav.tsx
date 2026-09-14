@@ -10,22 +10,14 @@ import Link from "next/link";
 export function TeamsTopNav({
   variant,
   title,
-  elevated = false,
 }: {
   variant: "root" | "standard";
   title?: string;
-  /** 콘텐츠가 헤더 아래로 스크롤된 상태일 때 그림자를 붙임 */
-  elevated?: boolean;
 }) {
   return (
     <Box
       position="sticky"
-      style={{
-        top: 0,
-        zIndex: 30,
-        boxShadow: elevated ? "0 2px 6px rgba(0, 0, 0, 0.15)" : "none",
-        transition: "box-shadow 150ms ease",
-      }}
+      style={{ top: 0, zIndex: 30 }}
       bg="bg.layerDefault"
       width="full"
     >

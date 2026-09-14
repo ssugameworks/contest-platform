@@ -1,7 +1,8 @@
 "use client";
 
-import { Box, HStack, ScrollFog, Text, VStack } from "@seed-design/react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Box, HStack, Text, VStack } from "@seed-design/react";
+import { ErrorBoundary, Suspense } from "@suspensive/react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { ActionButton } from "seed-design/ui/action-button";
 import {
@@ -21,6 +22,9 @@ import {
   EvaluateTeamForm,
   type EvaluateTeamFormHandle,
 } from "@/features/evaluate-team";
+import { useSuspenseQuery } from "@/shared/lib/query/use-suspense-query";
+import { ScrollFog } from "@/shared/ui/scroll-fog";
+import { SuspenseQueryBoundary } from "@/shared/ui/suspense-query-boundary";
 import {
   Table,
   TableBody,
@@ -30,28 +34,50 @@ import {
   TableRow,
 } from "@/shared/ui/table";
 
-function BoothCell({ teamId }: { teamId: string }) {
-  const { data: booth } = useQuery({
+function BoothCellContent({ teamId }: { teamId: string }) {
+  const { data: booth } = useSuspenseQuery({
     queryKey: ["booth", teamId],
     queryFn: () => getBoothByTeamIdAction(teamId),
   });
   return <>{booth ? formatBoothLocation(booth) : "-"}</>;
 }
 
+// Decorative per-row lookup: previously silently fell back to "-" on error
+// or while loading, so it keeps that behavior instead of surfacing a
+// snackbar per row.
+function BoothCell({ teamId }: { teamId: string }) {
+  return (
+    <ErrorBoundary fallback="-">
+      {/* clientOnly: queryFn is a Server Action — see SuspenseQueryBoundary */}
+      <Suspense clientOnly fallback="-">
+        <BoothCellContent teamId={teamId} />
+      </Suspense>
+    </ErrorBoundary>
+  );
+}
+
 export function JudgeTeamList({ judgeId }: { judgeId: string }) {
+  return (
+    <SuspenseQueryBoundary>
+      <JudgeTeamListContent judgeId={judgeId} />
+    </SuspenseQueryBoundary>
+  );
+}
+
+function JudgeTeamListContent({ judgeId }: { judgeId: string }) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [activeTeam, setActiveTeam] = useState<Team | null>(null);
   const [liveTotal, setLiveTotal] = useState(0);
   const formRef = useRef<EvaluateTeamFormHandle>(null);
 
-  const { data: teams = [] } = useQuery({
+  const { data: teams } = useSuspenseQuery({
     queryKey: ["teams"],
     queryFn: listTeamsAction,
   });
   // One query for every team's evaluation by this judge, instead of a
   // separate request per row (status cell) + per open (bottom sheet).
-  const { data: evaluations = [] } = useQuery({
+  const { data: evaluations } = useSuspenseQuery({
     queryKey: ["evaluations"],
     queryFn: listEvaluationsAction,
   });
@@ -114,13 +140,15 @@ export function JudgeTeamList({ judgeId }: { judgeId: string }) {
               <ScrollFog placement={["top", "bottom"]}>
                 <Box style={{ paddingTop: 20, paddingBottom: 24 }}>
                   {activeTeam && (
-                    <EvaluateTeamForm
-                      ref={formRef}
-                      judgeId={judgeId}
-                      team={activeTeam}
-                      onSaved={refresh}
-                      onTotalChange={setLiveTotal}
-                    />
+                    <SuspenseQueryBoundary>
+                      <EvaluateTeamForm
+                        ref={formRef}
+                        judgeId={judgeId}
+                        team={activeTeam}
+                        onSaved={refresh}
+                        onTotalChange={setLiveTotal}
+                      />
+                    </SuspenseQueryBoundary>
                   )}
                 </Box>
               </ScrollFog>

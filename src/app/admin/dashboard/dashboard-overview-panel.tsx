@@ -1,11 +1,14 @@
 "use client";
 
+import NumberFlow from "@number-flow/react";
 import { Box, Divider, Grid, HStack, Text, VStack } from "@seed-design/react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { orderBy, sumBy } from "es-toolkit";
+import { useSuspenseQuery } from "@/shared/lib/query/use-suspense-query";
 import { useRealtimeRefetch } from "@/shared/lib/supabase/use-realtime-refetch";
 import { PageHeader } from "@/shared/ui/page-header";
 import { StatCard } from "@/shared/ui/stat-card";
+import { SuspenseQueryBoundary } from "@/shared/ui/suspense-query-boundary";
 import {
   Table,
   TableBody,
@@ -26,13 +29,25 @@ const REALTIME_TABLES = [
   "app_settings",
 ];
 
-export function AdminDashboardOverviewPanel({
+export function AdminDashboardOverviewPanel(props: {
+  initialStats: DashboardStats;
+}) {
+  return (
+    // initialData seeds the query synchronously, so this never suspends on
+    // first render — safe to keep full SSR unlike the other boundaries.
+    <SuspenseQueryBoundary clientOnly={false}>
+      <AdminDashboardOverviewPanelContent {...props} />
+    </SuspenseQueryBoundary>
+  );
+}
+
+function AdminDashboardOverviewPanelContent({
   initialStats,
 }: {
   initialStats: DashboardStats;
 }) {
   const queryClient = useQueryClient();
-  const { data: stats, dataUpdatedAt } = useQuery({
+  const { data: stats, dataUpdatedAt } = useSuspenseQuery({
     queryKey: QUERY_KEY,
     queryFn: getDashboardStats,
     initialData: initialStats,
@@ -60,11 +75,17 @@ export function AdminDashboardOverviewPanel({
       />
 
       <Grid columns={{ base: 1, sm: 2, lg: 4 }} gap="x4" width="full">
-        <StatCard label="총 참가팀 수" value={`${stats.teams.length}팀`} />
-        <StatCard label="총 투자자 수" value={`${stats.investorsCount}명`} />
+        <StatCard
+          label="총 참가팀 수"
+          value={<NumberFlow value={stats.teams.length} suffix="팀" />}
+        />
+        <StatCard
+          label="총 투자자 수"
+          value={<NumberFlow value={stats.investorsCount} suffix="명" />}
+        />
         <StatCard
           label="총 투자금액"
-          value={`${totalAmount.toLocaleString()}원`}
+          value={<NumberFlow value={totalAmount} suffix="원" locales="ko-KR" />}
         />
         <StatCard label="현재 1위 팀" value={topTeam?.name ?? "-"} />
       </Grid>
@@ -103,8 +124,19 @@ export function AdminDashboardOverviewPanel({
             {investmentLeaderboard.map((entry) => (
               <TableRow key={entry.teamId}>
                 <TableCell>{teamName(entry.teamId)}</TableCell>
-                <TableCell align="right">{`${entry.amount.toLocaleString()}원`}</TableCell>
-                <TableCell align="right">{`${stats.investorCounts[entry.teamId] ?? 0}명`}</TableCell>
+                <TableCell align="right">
+                  <NumberFlow
+                    value={entry.amount}
+                    suffix="원"
+                    locales="ko-KR"
+                  />
+                </TableCell>
+                <TableCell align="right">
+                  <NumberFlow
+                    value={stats.investorCounts[entry.teamId] ?? 0}
+                    suffix="명"
+                  />
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -126,9 +158,13 @@ export function AdminDashboardOverviewPanel({
           <TableBody>
             {stats.scoreLeaderboard.slice(0, 5).map((entry, index) => (
               <TableRow key={entry.teamId}>
-                <TableCell>{index + 1}</TableCell>
+                <TableCell>
+                  <NumberFlow value={index + 1} />
+                </TableCell>
                 <TableCell>{teamName(entry.teamId)}</TableCell>
-                <TableCell align="right">{entry.finalScore}</TableCell>
+                <TableCell align="right">
+                  <NumberFlow value={entry.finalScore} />
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

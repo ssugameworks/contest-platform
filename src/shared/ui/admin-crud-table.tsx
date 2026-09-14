@@ -1,13 +1,7 @@
 "use client";
 
-import {
-  Box,
-  HStack,
-  ResponsivePair,
-  ScrollFog,
-  VStack,
-} from "@seed-design/react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Box, HStack, ResponsivePair, VStack } from "@seed-design/react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { orderBy } from "es-toolkit";
 import { type ReactNode, useMemo, useState } from "react";
 import { ActionButton } from "seed-design/ui/action-button";
@@ -32,6 +26,9 @@ import {
   useSnackbarAdapter,
 } from "seed-design/ui/snackbar";
 import { TextField, TextFieldInput } from "seed-design/ui/text-field";
+import { useSuspenseQuery } from "@/shared/lib/query/use-suspense-query";
+import { ScrollFog } from "@/shared/ui/scroll-fog";
+import { SuspenseQueryBoundary } from "@/shared/ui/suspense-query-boundary";
 import {
   Table,
   TableBody,
@@ -65,7 +62,17 @@ export interface AdminCrudTableProps<T extends object> {
   defaultSortDesc?: boolean;
 }
 
-export function AdminCrudTable<T extends object>({
+export function AdminCrudTable<T extends object>(
+  props: AdminCrudTableProps<T>,
+) {
+  return (
+    <SuspenseQueryBoundary>
+      <AdminCrudTableContent {...props} />
+    </SuspenseQueryBoundary>
+  );
+}
+
+function AdminCrudTableContent<T extends object>({
   queryKey,
   queryFn,
   getId,
@@ -88,7 +95,7 @@ export function AdminCrudTable<T extends object>({
   const [editing, setEditing] = useState<T | undefined>(undefined);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const { data: items = [], isError } = useQuery({ queryKey, queryFn });
+  const { data: items } = useSuspenseQuery({ queryKey, queryFn });
 
   const deleteMutation = useMutation({
     mutationFn: deleteAction,
@@ -190,13 +197,6 @@ export function AdminCrudTable<T extends object>({
           </TableRow>
         </TableHead>
         <TableBody>
-          {isError && rows.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={columns.length}>
-                목록을 불러오지 못했어요
-              </TableCell>
-            </TableRow>
-          )}
           {rows.map((item) => (
             <TableRow
               key={getId(item)}
@@ -218,7 +218,9 @@ export function AdminCrudTable<T extends object>({
           <SidePanelBody paddingX="x6">
             <ScrollFog placement={["top", "bottom"]}>
               <Box style={{ paddingTop: 20, paddingBottom: 20 }}>
-                {renderForm(editing, refresh)}
+                <SuspenseQueryBoundary>
+                  {renderForm(editing, refresh)}
+                </SuspenseQueryBoundary>
               </Box>
             </ScrollFog>
           </SidePanelBody>

@@ -8,7 +8,7 @@ import {
   Text,
   VStack,
 } from "@seed-design/react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useBooleanState, useSet } from "react-simplikit";
 import { ActionButton } from "seed-design/ui/action-button";
@@ -58,6 +58,8 @@ import {
   setBoothMarkerAction,
   setBoothMatrixConfigAction,
 } from "@/features/manage-booths/model/actions";
+import { useSuspenseQuery } from "@/shared/lib/query/use-suspense-query";
+import { SuspenseQueryBoundary } from "@/shared/ui/suspense-query-boundary";
 
 const UNASSIGNED = "__unassigned__";
 const BOOTHS_QUERY_KEY = ["admin-booths"];
@@ -114,6 +116,20 @@ interface PendingChange {
 }
 
 export function AdminBoothGrid() {
+  return (
+    <SuspenseQueryBoundary
+      loadingFallback={
+        <Text textStyle="t4Regular" color="fg.neutralSubtle">
+          불러오는 중...
+        </Text>
+      }
+    >
+      <AdminBoothGridContent />
+    </SuspenseQueryBoundary>
+  );
+}
+
+function AdminBoothGridContent() {
   const queryClient = useQueryClient();
   const adapter = useSnackbarAdapter();
   const [zoneEndDraft, setZoneEndDraft] = useState<string | null>(null);
@@ -130,27 +146,24 @@ export function AdminBoothGrid() {
   const [selectedMarkerKind, setSelectedMarkerKind] =
     useState<BoothMarkerKind | null>(null);
 
-  const { data: booths = [] } = useQuery({
+  const { data: booths } = useSuspenseQuery({
     queryKey: BOOTHS_QUERY_KEY,
     queryFn: listBoothsAction,
   });
-  const { data: markers = [] } = useQuery({
+  const { data: markers } = useSuspenseQuery({
     queryKey: MARKERS_QUERY_KEY,
     queryFn: listBoothMarkersAction,
   });
-  const { data: teams = [] } = useQuery({
+  const { data: teams } = useSuspenseQuery({
     queryKey: ["teams"],
     queryFn: listTeamsAction,
   });
-  const { data: matrixConfig } = useQuery({
+  const { data: matrixConfig } = useSuspenseQuery({
     queryKey: MATRIX_CONFIG_QUERY_KEY,
     queryFn: getBoothMatrixConfigAction,
   });
-  const isLoading = matrixConfig === undefined;
-  // matrixConfig가 로딩되기 전 잠깐 가짜 기본값이 보였다가 실제 저장값으로
-  // 바뀌는 게 거슬려서, 로딩 끝날 때까지 아예 안 그려요.
-  const persistedZones = matrixConfig?.zones ?? [];
-  const columns = columnsDraft ?? matrixConfig?.columns;
+  const persistedZones = matrixConfig.zones;
+  const columns = columnsDraft ?? matrixConfig.columns;
   const currentZoneEnd = [...persistedZones].sort().at(-1) ?? "A";
   const zoneEnd = zoneEndDraft ?? currentZoneEnd;
   const zones = zoneRangeEndingAt(zoneEnd);
@@ -302,7 +315,6 @@ export function AdminBoothGrid() {
   };
 
   const handleSaveZoneEnd = () => {
-    if (columns === undefined) return;
     const letter = zoneEnd.trim().toUpperCase().slice(0, 1) || "A";
     if (letter !== currentZoneEnd) {
       commitMatrixChange(zoneRangeEndingAt(letter), columns);
@@ -311,7 +323,7 @@ export function AdminBoothGrid() {
   };
 
   const handleSaveColumns = () => {
-    if (columns === undefined || columns === matrixConfig?.columns) return;
+    if (columns === matrixConfig.columns) return;
     commitMatrixChange(persistedZones, columns);
     setColumnsDraft(null);
   };
@@ -326,14 +338,6 @@ export function AdminBoothGrid() {
     (team) =>
       team.id === selectedBooth?.teamId || !assignedTeamIds.has(team.id),
   );
-
-  if (isLoading || columns === undefined) {
-    return (
-      <Text textStyle="t4Regular" color="fg.neutralSubtle">
-        불러오는 중...
-      </Text>
-    );
-  }
 
   return (
     <VStack gap="x6" width="full">

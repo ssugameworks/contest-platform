@@ -1,6 +1,5 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import {
   BottomSheetBody,
   BottomSheetContent,
@@ -13,6 +12,8 @@ import {
 } from "@/entities/booth/model/actions";
 import { BoothFloorPlan } from "@/entities/booth/ui/booth-floor-plan";
 import { listTeamsAction } from "@/entities/team/model/actions";
+import { useSuspenseQuery } from "@/shared/lib/query/use-suspense-query";
+import { SuspenseQueryBoundary } from "@/shared/ui/suspense-query-boundary";
 
 export function BoothFloorPlanSheet({
   open,
@@ -23,42 +24,55 @@ export function BoothFloorPlanSheet({
   onOpenChange: (open: boolean) => void;
   highlightTeamId?: string | null;
 }) {
-  const { data: booths = [] } = useQuery({
-    queryKey: ["admin-booths"],
-    queryFn: listBoothsAction,
-    enabled: open,
-  });
-  const { data: markers = [] } = useQuery({
-    queryKey: ["booth-markers"],
-    queryFn: listBoothMarkersAction,
-    enabled: open,
-  });
-  const { data: teams = [] } = useQuery({
-    queryKey: ["teams"],
-    queryFn: listTeamsAction,
-    enabled: open,
-  });
-  const { data: matrixConfig } = useQuery({
-    queryKey: ["booth-matrix-config"],
-    queryFn: getBoothMatrixConfigAction,
-    enabled: open,
-  });
-
   return (
     <BottomSheetRoot open={open} onOpenChange={onOpenChange}>
       <BottomSheetContent title="부스 배치도">
         <BottomSheetBody
           style={{ paddingBottom: "calc(var(--seed-safe-area-bottom) + 24px)" }}
         >
-          <BoothFloorPlan
-            booths={booths}
-            teams={teams}
-            markers={markers}
-            matrixConfig={matrixConfig}
-            highlightTeamId={highlightTeamId}
-          />
+          {/* Fetch only while the sheet is actually open, matching the
+              previous `enabled: open` behavior — useSuspenseQuery has no
+              `enabled` escape hatch, so gate by mounting instead. */}
+          {open && (
+            <SuspenseQueryBoundary>
+              <BoothFloorPlanContent highlightTeamId={highlightTeamId} />
+            </SuspenseQueryBoundary>
+          )}
         </BottomSheetBody>
       </BottomSheetContent>
     </BottomSheetRoot>
+  );
+}
+
+function BoothFloorPlanContent({
+  highlightTeamId,
+}: {
+  highlightTeamId?: string | null;
+}) {
+  const { data: booths } = useSuspenseQuery({
+    queryKey: ["admin-booths"],
+    queryFn: listBoothsAction,
+  });
+  const { data: markers } = useSuspenseQuery({
+    queryKey: ["booth-markers"],
+    queryFn: listBoothMarkersAction,
+  });
+  const { data: teams } = useSuspenseQuery({
+    queryKey: ["teams"],
+    queryFn: listTeamsAction,
+  });
+  const { data: matrixConfig } = useSuspenseQuery({
+    queryKey: ["booth-matrix-config"],
+    queryFn: getBoothMatrixConfigAction,
+  });
+
+  return (
+    <BoothFloorPlan
+      booths={booths}
+      teams={teams}
+      markers={markers}
+      matrixConfig={matrixConfig}
+      highlightTeamId={highlightTeamId}
+    />
   );
 }
