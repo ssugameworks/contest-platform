@@ -37,7 +37,7 @@ export function InvestorLoginForm() {
       onClose: () => {},
       render: () => <Snackbar message="투자자로 로그인했어요" />,
     });
-    router.push("/leaderboard");
+    router.push("/teams");
   });
 
   return (
