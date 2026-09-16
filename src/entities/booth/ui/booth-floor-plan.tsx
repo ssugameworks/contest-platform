@@ -142,10 +142,7 @@ export function BoothFloorPlan({
               }
 
               return (
-                <div
-                  key={`${zones[zoneIndex]}-${number}`}
-                  style={cellStyle}
-                >
+                <div key={`${zones[zoneIndex]}-${number}`} style={cellStyle}>
                   {icon}
                 </div>
               );
