@@ -8,6 +8,7 @@ import {
 import type { Metadata } from "next";
 import { Avatar } from "seed-design/ui/avatar";
 import { IdentityPlaceholder } from "seed-design/ui/identity-placeholder";
+import { logoutAction } from "@/entities/session";
 import { requireParticipantTeamId } from "@/entities/session/model/session";
 import { getTeamById } from "@/entities/team";
 import { DashboardSideNav } from "@/widgets/dashboard-sidenav";
@@ -56,6 +57,7 @@ export default async function DashboardLayout({
             fallback={<IdentityPlaceholder identity="business" />}
           />
         }
+        logout={{ action: logoutAction, redirectTo: "/login" }}
       >
         {children}
       </DashboardSideNav>

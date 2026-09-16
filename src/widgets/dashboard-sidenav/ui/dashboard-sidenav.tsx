@@ -1,14 +1,16 @@
 "use client";
 
+import { IconArrowLeftBracketRightLine } from "@karrotmarket/react-monochrome-icon";
 import { Box, HStack, Layout, useBreakpointValue } from "@seed-design/react";
 import { usePathname, useRouter } from "next/navigation";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState, useTransition } from "react";
 import {
   SideNavigationContent,
   SideNavigationFooter,
   SideNavigationGroup,
   SideNavigationHeader,
   SideNavigationInset,
+  SideNavigationItemButton,
   SideNavigationProvider,
   SideNavigationRoot,
   SideNavigationTrigger,
@@ -21,19 +23,27 @@ export interface DashboardNavItem {
   icon: ReactNode;
 }
 
+export interface DashboardLogout {
+  action: () => Promise<void>;
+  redirectTo: string;
+}
+
 export function DashboardSideNav({
   navItems,
   headerContent,
   children,
   dark = false,
+  logout,
 }: {
   navItems: DashboardNavItem[];
   headerContent?: ReactNode;
   children: ReactNode;
   dark?: boolean;
+  logout?: DashboardLogout;
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [loggingOut, startLogout] = useTransition();
   const collapsedByBreakpoint = useBreakpointValue({ base: true, md: false });
   const [collapsed, setCollapsed] = useState(collapsedByBreakpoint);
 
@@ -83,7 +93,22 @@ export function DashboardSideNav({
               }))}
             />
           </SideNavigationContent>
-          <SideNavigationFooter />
+          <SideNavigationFooter>
+            {logout && (
+              <SideNavigationItemButton
+                prefixIcon={<IconArrowLeftBracketRightLine />}
+                label="로그아웃"
+                disabled={loggingOut}
+                onClick={() =>
+                  startLogout(async () => {
+                    await logout.action();
+                    router.push(logout.redirectTo);
+                    router.refresh();
+                  })
+                }
+              />
+            )}
+          </SideNavigationFooter>
         </SideNavigationRoot>
         <SideNavigationInset>
           <Layout.Content>

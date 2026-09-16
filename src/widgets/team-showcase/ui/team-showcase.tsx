@@ -41,7 +41,7 @@ import {
   formatBoothLocation,
 } from "@/entities/booth/model/pure";
 import type { Participant } from "@/entities/participant";
-import type { CurrentUser } from "@/entities/session";
+import { type CurrentUser, logoutAction } from "@/entities/session";
 import type { Team } from "@/entities/team";
 import { InvestButton } from "@/features/invest-in-team";
 import { PageHeader } from "@/shared/ui/page-header";
@@ -237,6 +237,11 @@ export function TeamShowcase({
       <TeamsTopNav
         variant="standard"
         title={nameHeaderVisible ? undefined : team.name}
+        logout={
+          currentUser
+            ? { action: logoutAction, redirectTo: "/login" }
+            : undefined
+        }
       />
 
       <Box maxHeight="full" overflowY="auto" width="full">

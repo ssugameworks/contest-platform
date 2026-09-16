@@ -1,6 +1,7 @@
 import IconChevronLeftLine from "@karrotmarket/react-monochrome-icon/IconChevronLeftLine";
 import { Box, HStack, Text } from "@seed-design/react";
 import Link from "next/link";
+import { LogoutButton } from "./logout-button";
 
 // SEED Design의 Top Navigation 스펙(Root/Standard 타입, Left/Main/Right 슬롯)을
 // 그대로 따르되, React 구현체(seed-design/ui/app-bar.tsx)가 Stackflow
@@ -10,9 +11,12 @@ import Link from "next/link";
 export function TeamsTopNav({
   variant,
   title,
+  logout,
 }: {
   variant: "root" | "standard";
   title?: string;
+  /** 로그인된 사용자(참가자/투자자)일 때만 넘겨서 우측에 로그아웃 버튼을 보여줘요 — 이 화면들엔 별도 사이드바가 없어서 로그아웃할 방법이 따로 없어요. */
+  logout?: { action: () => Promise<void>; redirectTo: string };
 }) {
   return (
     <Box
@@ -54,7 +58,18 @@ export function TeamsTopNav({
           {title && <Text textStyle="t5Bold">{title}</Text>}
         </Box>
 
-        <Box style={{ width: 40, height: 40, flexShrink: 0 }} />
+        <Box
+          style={{
+            width: 40,
+            height: 40,
+            flexShrink: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {logout && <LogoutButton {...logout} />}
+        </Box>
       </HStack>
     </Box>
   );

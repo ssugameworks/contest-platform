@@ -1,11 +1,20 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { getCurrentStaff } from "@/entities/staff/model/session";
 import { AdminLoginForm } from "@/features/login-admin";
 import { CenteredCard } from "@/shared/ui/centered-card";
 import { Footer } from "@/shared/ui/footer";
 
 export const metadata: Metadata = { title: "관리자·심사위원 로그인" };
 
-export default function AdminLoginPage() {
+export default async function AdminLoginPage() {
+  // Already logged in (e.g. via a bookmark or the back button) — bounce
+  // forward instead of showing the login form again.
+  const staff = await getCurrentStaff();
+  if (staff) {
+    redirect(staff.role === "admin" ? "/admin/dashboard" : "/judge/dashboard");
+  }
+
   return (
     <main
       data-seed-color-mode="dark-only"
