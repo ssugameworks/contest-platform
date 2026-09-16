@@ -1,5 +1,6 @@
 import { IconCheckmarkClipboardLine } from "@karrotmarket/react-monochrome-icon";
 import type { Metadata } from "next";
+import { staffLogoutAction } from "@/entities/staff";
 import { DashboardSideNav } from "@/widgets/dashboard-sidenav";
 
 export const metadata: Metadata = { title: "심사위원 대시보드" };
@@ -16,7 +17,11 @@ export default function JudgeDashboardLayout({
   children,
 }: LayoutProps<"/judge/dashboard">) {
   return (
-    <DashboardSideNav navItems={NAV_ITEMS} dark>
+    <DashboardSideNav
+      navItems={NAV_ITEMS}
+      dark
+      logout={{ action: staffLogoutAction, redirectTo: "/admin/login" }}
+    >
       {children}
     </DashboardSideNav>
   );

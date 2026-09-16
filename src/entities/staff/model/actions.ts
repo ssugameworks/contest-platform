@@ -80,3 +80,8 @@ export async function findStaffByIdAction(
     role: parseKnownValue(staffRoleSchema, data.role, "staff role"),
   };
 }
+
+export async function staffLogoutAction(): Promise<void> {
+  const store = await cookies();
+  store.delete(STAFF_SESSION_COOKIE_NAME);
+}

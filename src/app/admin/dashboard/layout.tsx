@@ -9,6 +9,7 @@ import {
 } from "@karrotmarket/react-monochrome-icon";
 import { Box } from "@seed-design/react";
 import type { Metadata } from "next";
+import { staffLogoutAction } from "@/entities/staff";
 import { requireAdmin } from "@/entities/staff/model/session";
 import { Logo } from "@/shared/ui/logo";
 import { DashboardSideNav } from "@/widgets/dashboard-sidenav";
@@ -70,6 +71,7 @@ export default async function AdminDashboardLayout({
         </Box>
       }
       dark
+      logout={{ action: staffLogoutAction, redirectTo: "/admin/login" }}
     >
       {children}
     </DashboardSideNav>

@@ -7,6 +7,8 @@ import { IdentityPlaceholder } from "seed-design/ui/identity-placeholder";
 import { List, ListDivider } from "seed-design/ui/list";
 import { formatBoothLocation, listBooths } from "@/entities/booth";
 import { listParticipants } from "@/entities/participant";
+import { logoutAction } from "@/entities/session";
+import { getCurrentUser } from "@/entities/session/model/session";
 import { listTeams } from "@/entities/team";
 import { ScrollFog } from "@/shared/ui/scroll-fog";
 import { TeamsTopNav } from "@/widgets/teams-top-nav";
@@ -17,10 +19,11 @@ const SCREENSHOT_GRID_SIZE = 4;
 
 export default async function TeamListPage(props: PageProps<"/teams">) {
   const { page: pageParam } = await props.searchParams;
-  const [teams, participants, booths] = await Promise.all([
+  const [teams, participants, booths, currentUser] = await Promise.all([
     listTeams(),
     listParticipants(),
     listBooths(),
+    getCurrentUser(),
   ]);
 
   const totalPages = Math.max(1, Math.ceil(teams.length / PAGE_SIZE));
@@ -33,7 +36,15 @@ export default async function TeamListPage(props: PageProps<"/teams">) {
       style={{ flexDirection: "column", height: "100dvh" }}
       width="full"
     >
-      <TeamsTopNav variant="root" title="팀 목록" />
+      <TeamsTopNav
+        variant="root"
+        title="팀 목록"
+        logout={
+          currentUser
+            ? { action: logoutAction, redirectTo: "/login" }
+            : undefined
+        }
+      />
 
       {/* key={page} remounts the scroll container on page change so its
       scrollTop resets — router.push only updates the `page` search param,
