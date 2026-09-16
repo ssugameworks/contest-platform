@@ -35,7 +35,10 @@ export default async function TeamListPage(props: PageProps<"/teams">) {
     >
       <TeamsTopNav variant="root" title="팀 목록" />
 
-      <Box maxHeight="full" overflowY="auto" width="full">
+      {/* key={page} remounts the scroll container on page change so its
+      scrollTop resets — router.push only updates the `page` search param,
+      which wouldn't otherwise touch this element's scroll position. */}
+      <Box key={page} maxHeight="full" overflowY="auto" width="full">
         <ScrollFog placement={["top", "bottom"]}>
           <VStack
             gap="x6"

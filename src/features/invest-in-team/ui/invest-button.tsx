@@ -71,8 +71,15 @@ function InvestButtonContent({
     queryKey,
     queryFn: () => getTradeContextAction(teamId),
   });
-  const remainingBudget = context?.remainingBudget ?? 0;
-  const myHolding = context?.holding ?? 0;
+  // InvestButton only mounts once the parent has confirmed currentUser.kind
+  // === "investor" (see team-showcase.tsx), so a null context here means
+  // the investor session lapsed between that check and this query — an
+  // error, not a normal empty state. Throwing surfaces SuspenseQueryBoundary's
+  // errorFallback instead of silently showing a 0 budget with an active buy
+  // button that would only fail once the user gets to submit.
+  if (!context) throw new Error("투자 정보를 불러오지 못했어요");
+  const remainingBudget = context.remainingBudget;
+  const myHolding = context.holding;
 
   const maxAmount = tradeType === "buy" ? remainingBudget : myHolding;
   const schema = useMemo(
@@ -96,7 +103,6 @@ function InvestButtonContent({
 
   const tradeMutation = useMutation({
     mutationFn: ({ amount }: TradeAmountInput) => {
-      if (!context) throw new Error("투자자 정보를 불러오지 못했어요");
       return placeTradeAction(teamId, tradeType, amount);
     },
     onSuccess: (_, { amount }) => {
@@ -170,17 +176,13 @@ function InvestButtonContent({
                 >
                   <Box display="flex" justifyContent="center">
                     <Text textStyle="t6Bold" color="fg.neutral">
-                      {tradeType === "buy"
-                        ? (context?.investorName ?? "나")
-                        : teamName}
+                      {tradeType === "buy" ? context.investorName : teamName}
                     </Text>
                   </Box>
                   <Icon svg={<IconArrowRightLine />} />
                   <Box display="flex" justifyContent="center">
                     <Text textStyle="t6Bold" color="fg.neutral">
-                      {tradeType === "buy"
-                        ? teamName
-                        : (context?.investorName ?? "나")}
+                      {tradeType === "buy" ? teamName : context.investorName}
                     </Text>
                   </Box>
                 </Box>
