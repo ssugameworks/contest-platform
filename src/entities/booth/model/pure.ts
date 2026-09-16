@@ -1,5 +1,7 @@
 // No supabase imports here — client components import this file directly
 // (not via ./index.ts) so they don't pull in the server-only Supabase client.
+import { z } from "zod";
+
 export interface Booth {
   id: string;
   teamId: string | null;
@@ -35,6 +37,7 @@ export const BOOTH_MARKER_KINDS = [
   "door",
 ] as const;
 export type BoothMarkerKind = (typeof BOOTH_MARKER_KINDS)[number];
+export const boothMarkerKindSchema = z.enum(BOOTH_MARKER_KINDS);
 
 export interface BoothMarker {
   zone: string;

@@ -12,7 +12,7 @@ import {
   listApplications,
   updateApplicationStatus,
 } from "./application";
-import { applicationSchema } from "./schema";
+import { applicationSchema, applicationStatusSchema } from "./schema";
 
 const STUDENT_ID_REGEX = /^\d{8}$/;
 
@@ -74,7 +74,9 @@ export async function updateApplicationStatusAction(
   status: ApplicationStatus,
 ): Promise<void> {
   await requireAdmin();
-  await updateApplicationStatus(id, status);
+  const parsed = applicationStatusSchema.safeParse(status);
+  if (!parsed.success) throw new Error("올바르지 않은 상태예요");
+  await updateApplicationStatus(id, parsed.data);
 }
 
 export async function deleteApplicationAction(id: string): Promise<void> {

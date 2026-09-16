@@ -1,5 +1,6 @@
+import { parseKnownValue } from "@/shared/lib/parse-known-value";
 import { createAdminClient } from "@/shared/lib/supabase/admin";
-import type { Staff, StaffRole } from "./pure";
+import { type Staff, staffRoleSchema } from "./pure";
 
 export type { Staff, StaffRole } from "./pure";
 
@@ -15,6 +16,6 @@ export async function listJudges(): Promise<Staff[]> {
   return (data ?? []).map((row) => ({
     id: row.id,
     name: row.name,
-    role: row.role as StaffRole,
+    role: parseKnownValue(staffRoleSchema, row.role, "staff role"),
   }));
 }

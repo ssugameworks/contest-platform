@@ -1,6 +1,11 @@
 import { z } from "zod";
 import { MIN_TRADE_AMOUNT } from "@/entities/investment/model/pure";
 
+// Re-exported so actions.ts only needs "./schema" for every input
+// validator — the schema itself lives with TransactionType in the entity
+// layer (single source of truth for the enum's members).
+export { transactionTypeSchema } from "@/entities/investment/model/pure";
+
 export function createTradeAmountSchema(maxAmount: number) {
   return z.object({
     amount: z

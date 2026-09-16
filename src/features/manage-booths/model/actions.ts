@@ -3,7 +3,7 @@
 import type { BoothMarkerKind } from "@/entities/booth/model/pure";
 import { requireAdmin } from "@/entities/staff/model/session";
 import { createAdminClient } from "@/shared/lib/supabase/admin";
-import { createBoothSchema } from "./schema";
+import { boothMarkerKindSchema, createBoothSchema } from "./schema";
 
 export async function createBoothAction(
   zone: string,
@@ -85,9 +85,11 @@ export async function setBoothMarkerAction(
     if (error) throw new Error(error.message);
     return;
   }
+  const parsed = boothMarkerKindSchema.safeParse(kind);
+  if (!parsed.success) throw new Error("올바르지 않은 마커 종류예요");
   const { error } = await supabase
     .from("booth_markers")
-    .upsert({ zone, number, kind }, { onConflict: "zone,number" });
+    .upsert({ zone, number, kind: parsed.data }, { onConflict: "zone,number" });
   if (error) throw new Error(error.message);
 }
 

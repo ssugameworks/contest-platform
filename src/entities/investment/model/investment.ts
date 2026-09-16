@@ -1,11 +1,12 @@
 import { orderBy } from "es-toolkit";
+import { parseKnownValue } from "@/shared/lib/parse-known-value";
 import { createAdminClient } from "@/shared/lib/supabase/admin";
 import { throwIfError } from "@/shared/lib/supabase/query";
 import {
   type Investment,
   maskInvestorName,
   type Transaction,
-  type TransactionType,
+  transactionTypeSchema,
 } from "./pure";
 
 export type { Investment, Transaction, TransactionType } from "./pure";
@@ -65,7 +66,7 @@ export async function getTransactions(
       teamId: tx.team_id,
       investorId: tx.investor_id,
       investorName: anonymize ? maskInvestorName(name) : name,
-      type: tx.type as TransactionType,
+      type: parseKnownValue(transactionTypeSchema, tx.type, "거래 type"),
       amount: tx.amount,
     };
   });

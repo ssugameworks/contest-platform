@@ -1,6 +1,9 @@
 // No supabase imports here — client components import this file directly
 // (not via ./index.ts) so they don't pull in the server-only Supabase client.
+import { z } from "zod";
+
 export type TransactionType = "buy" | "sell";
+export const transactionTypeSchema = z.enum(["buy", "sell"]);
 
 export interface Investment {
   teamId: string;

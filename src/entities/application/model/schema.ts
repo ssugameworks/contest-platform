@@ -6,12 +6,30 @@ export const ROLE_OPTIONS = [
   { value: "developer", label: "Developer" },
 ] as const;
 
+// Used both to re-validate Server Action inputs (a Server Action is a
+// callable endpoint, not just a function called with a typed value — same
+// reasoning as applicationSchema below) and to validate these columns when
+// reading application rows back out of the DB, since they're plain `text`
+// columns with no Postgres enum/CHECK constraint behind them.
+export const applicationRoleSchema = z.enum(["pm", "design", "developer"]);
+export const applicationTypeSchema = z.enum(["individual", "team"]);
+export const applicationStatusSchema = z.enum([
+  "submitted",
+  "reviewing",
+  "accepted",
+  "rejected",
+]);
+
 const PHONE_REGEX = /^\d{2,3}-\d{3,4}-\d{4}$/;
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
 function isRealDate(value: string): boolean {
   if (!DATE_REGEX.test(value)) return false;
-  const [year, month, day] = value.split("-").map(Number);
+  // DATE_REGEX guarantees exactly 3 numeric parts here — the ?? NaN
+  // fallbacks only satisfy noUncheckedIndexedAccess and never actually
+  // trigger, since a NaN part would make every comparison below false
+  // anyway (same as any other malformed date).
+  const [year = NaN, month = NaN, day = NaN] = value.split("-").map(Number);
   const date = new Date(year, month - 1, day);
   return (
     date.getFullYear() === year &&
