@@ -77,12 +77,16 @@ export function BoothFloorPlan({
               {zone}
             </div>
           ))}
-          {grid.flatMap((row, zoneIndex) =>
-            row.map(({ number, booth, marker }) => {
+          {grid.flatMap((row, zoneIndex) => {
+            // grid has exactly one row per entry in zones (see
+            // buildBoothMatrix), so this is always defined.
+            const zone = zones[zoneIndex] ?? "";
+
+            return row.map(({ number, booth, marker }) => {
               if (!booth && !marker) {
                 return (
                   <div
-                    key={`${zones[zoneIndex]}-${number}`}
+                    key={`${zone}-${number}`}
                     style={{ gridColumn: number + 1, gridRow: zoneIndex + 1 }}
                   />
                 );
@@ -99,7 +103,7 @@ export function BoothFloorPlan({
               const label = markerMeta
                 ? markerMeta.label
                 : teamName
-                  ? `${formatBoothLocation({ zone: zones[zoneIndex], number })} · ${teamName}`
+                  ? `${formatBoothLocation({ zone, number })} · ${teamName}`
                   : undefined;
 
               const cellStyle = {
@@ -131,7 +135,7 @@ export function BoothFloorPlan({
               if (label) {
                 return (
                   <button
-                    key={`${zones[zoneIndex]}-${number}`}
+                    key={`${zone}-${number}`}
                     type="button"
                     onClick={() => setSelectedLabel(label)}
                     style={{ ...cellStyle, border: "none", padding: 0 }}
@@ -142,12 +146,12 @@ export function BoothFloorPlan({
               }
 
               return (
-                <div key={`${zones[zoneIndex]}-${number}`} style={cellStyle}>
+                <div key={`${zone}-${number}`} style={cellStyle}>
                   {icon}
                 </div>
               );
-            }),
-          )}
+            });
+          })}
         </div>
       </Box>
 

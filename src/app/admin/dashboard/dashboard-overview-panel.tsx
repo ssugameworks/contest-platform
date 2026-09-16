@@ -61,8 +61,9 @@ function AdminDashboardOverviewPanelContent({
 
   const totalAmount = sumBy(stats.totals, (entry) => entry.amount);
   const investmentLeaderboard = orderBy(stats.totals, ["amount"], ["desc"]);
-  const topTeam = stats.scoreLeaderboard[0]
-    ? stats.teams.find((team) => team.id === stats.scoreLeaderboard[0].teamId)
+  const topEntry = stats.scoreLeaderboard[0];
+  const topTeam = topEntry
+    ? stats.teams.find((team) => team.id === topEntry.teamId)
     : undefined;
   const teamName = (teamId: string) =>
     stats.teams.find((team) => team.id === teamId)?.name ?? teamId;

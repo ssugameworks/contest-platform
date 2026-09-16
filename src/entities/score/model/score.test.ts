@@ -131,6 +131,6 @@ describe("score.ts (Supabase and sibling-entity calls mocked)", () => {
     const [entry] = await getScoreLeaderboard();
 
     // investmentScore 100 (sole/highest bidder), judgeScore 0 -> 100*0.5 + 0*0.5 = 50
-    expect(entry.finalScore).toBe(50);
+    expect(entry?.finalScore).toBe(50);
   });
 });

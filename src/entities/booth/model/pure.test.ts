@@ -43,16 +43,16 @@ describe("buildBoothMatrix", () => {
     const booth = makeBooth({ zone: "A", number: 2, teamId: "team-1" });
     const result = buildBoothMatrix([booth], []);
     expect(result.columns).toBe(2);
-    const cell = result.grid[0][1];
-    expect(cell.booth?.teamId).toBe("team-1");
-    expect(cell.number).toBe(2);
+    const cell = result.grid[0]?.[1];
+    expect(cell?.booth?.teamId).toBe("team-1");
+    expect(cell?.number).toBe(2);
   });
 
   test("places a marker independently of booths, sharing coordinates", () => {
     const marker: BoothMarker = { zone: "B", number: 1, kind: "info" };
     const result = buildBoothMatrix([], [marker]);
     expect(result.zones).toEqual(["B"]);
-    expect(result.grid[0][0].marker?.kind).toBe("info");
+    expect(result.grid[0]?.[0]?.marker?.kind).toBe("info");
   });
 
   test("expands columns beyond matrixConfig when real data is larger", () => {

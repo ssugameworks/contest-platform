@@ -695,6 +695,7 @@ function ZoomableImage({
 
     if (pointers.current.size === 2) {
       const [a, b] = [...pointers.current.values()];
+      if (!a || !b) return;
       gestureRef.current = {
         mode: "pinch",
         startDistance: Math.hypot(a.x - b.x, a.y - b.y),
@@ -737,6 +738,7 @@ function ZoomableImage({
     if (gesture.mode === "pinch" && pointers.current.size === 2) {
       event.preventDefault();
       const [a, b] = [...pointers.current.values()];
+      if (!a || !b) return;
       const distance = Math.hypot(a.x - b.x, a.y - b.y);
       const nextScale = Math.min(
         ZOOM_MAX_SCALE,
