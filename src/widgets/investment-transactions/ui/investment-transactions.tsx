@@ -1,7 +1,6 @@
 "use client";
 
 import { MannerTemp } from "@seed-design/react";
-import { useQuery } from "@tanstack/react-query";
 import { Fragment, useState } from "react";
 import { Avatar } from "seed-design/ui/avatar";
 import { IdentityPlaceholder } from "seed-design/ui/identity-placeholder";
@@ -10,7 +9,9 @@ import {
   SegmentedControl,
   SegmentedControlItem,
 } from "seed-design/ui/segmented-control";
+import { useSuspenseQuery } from "@/shared/lib/query/use-suspense-query";
 import { getSeedAvatarUrl } from "@/shared/lib/seed-avatar";
+import { SuspenseQueryBoundary } from "@/shared/ui/suspense-query-boundary";
 import { getTransactionsAction } from "../model/actions";
 
 const FILTERS = [
@@ -21,7 +22,18 @@ const FILTERS = [
 
 type Filter = (typeof FILTERS)[number]["value"];
 
-export function InvestmentTransactions({
+export function InvestmentTransactions(props: {
+  teamId: string;
+  anonymize?: boolean;
+}) {
+  return (
+    <SuspenseQueryBoundary>
+      <InvestmentTransactionsContent {...props} />
+    </SuspenseQueryBoundary>
+  );
+}
+
+function InvestmentTransactionsContent({
   teamId,
   anonymize = false,
 }: {
@@ -30,7 +42,7 @@ export function InvestmentTransactions({
 }) {
   const [filter, setFilter] = useState<Filter>("all");
 
-  const { data: allTransactions = [] } = useQuery({
+  const { data: allTransactions } = useSuspenseQuery({
     queryKey: ["transactions", teamId, anonymize],
     queryFn: () => getTransactionsAction(teamId, anonymize),
   });

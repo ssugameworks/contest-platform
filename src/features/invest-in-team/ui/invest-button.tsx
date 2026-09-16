@@ -2,8 +2,9 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconArrowRightLine } from "@karrotmarket/react-monochrome-icon";
+import NumberFlow from "@number-flow/react";
 import { Box, HStack, Icon, Text, VStack } from "@seed-design/react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
@@ -21,6 +22,8 @@ import {
   useSnackbarAdapter,
 } from "seed-design/ui/snackbar";
 import { TextField, TextFieldInput } from "seed-design/ui/text-field";
+import { useSuspenseQuery } from "@/shared/lib/query/use-suspense-query";
+import { SuspenseQueryBoundary } from "@/shared/ui/suspense-query-boundary";
 import { getTradeContextAction, placeTradeAction } from "../model/actions";
 import {
   createTradeAmountSchema,
@@ -31,7 +34,26 @@ const PRESET_UNITS = [10_000, 30_000, 50_000] as const;
 
 type TradeType = "buy" | "sell";
 
-export function InvestButton({
+function investButtonFallback(label: string) {
+  return (
+    <ActionButton variant="brandSolid" size="large" className="w-full" disabled>
+      {label}
+    </ActionButton>
+  );
+}
+
+export function InvestButton(props: { teamId: string; teamName: string }) {
+  return (
+    <SuspenseQueryBoundary
+      loadingFallback={investButtonFallback("불러오는 중...")}
+      errorFallback={investButtonFallback("투자 정보를 불러오지 못했어요")}
+    >
+      <InvestButtonContent {...props} />
+    </SuspenseQueryBoundary>
+  );
+}
+
+function InvestButtonContent({
   teamId,
   teamName,
 }: {
@@ -45,17 +67,19 @@ export function InvestButton({
   const [tradeType, setTradeType] = useState<TradeType>("buy");
 
   const queryKey = ["trade-context", teamId];
-  const {
-    data: context,
-    isPending: isContextPending,
-    isError: isContextError,
-  } = useQuery({
+  const { data: context } = useSuspenseQuery({
     queryKey,
     queryFn: () => getTradeContextAction(teamId),
   });
-  const remainingBudget = context?.remainingBudget ?? 0;
-  const myHolding = context?.holding ?? 0;
-  const contextUnavailable = isContextPending || isContextError;
+  // InvestButton only mounts once the parent has confirmed currentUser.kind
+  // === "investor" (see team-showcase.tsx), so a null context here means
+  // the investor session lapsed between that check and this query — an
+  // error, not a normal empty state. Throwing surfaces SuspenseQueryBoundary's
+  // errorFallback instead of silently showing a 0 budget with an active buy
+  // button that would only fail once the user gets to submit.
+  if (!context) throw new Error("투자 정보를 불러오지 못했어요");
+  const remainingBudget = context.remainingBudget;
+  const myHolding = context.holding;
 
   const maxAmount = tradeType === "buy" ? remainingBudget : myHolding;
   const schema = useMemo(
@@ -79,7 +103,6 @@ export function InvestButton({
 
   const tradeMutation = useMutation({
     mutationFn: ({ amount }: TradeAmountInput) => {
-      if (!context) throw new Error("투자자 정보를 불러오지 못했어요");
       return placeTradeAction(teamId, tradeType, amount);
     },
     onSuccess: (_, { amount }) => {
@@ -119,13 +142,12 @@ export function InvestButton({
             variant="brandSolid"
             size="large"
             className="w-full"
-            disabled={contextUnavailable}
             onClick={() => openTrade("buy")}
           >
-            {isContextError ? "투자 정보를 불러오지 못했어요" : "매수"}
+            매수
           </ActionButton>
         </BottomSheetTrigger>
-        {!contextUnavailable && myHolding > 0 && (
+        {myHolding > 0 && (
           <BottomSheetTrigger asChild>
             <ActionButton
               variant="neutralWeak"
@@ -154,42 +176,65 @@ export function InvestButton({
                 >
                   <Box display="flex" justifyContent="center">
                     <Text textStyle="t6Bold" color="fg.neutral">
-                      {tradeType === "buy"
-                        ? (context?.investorName ?? "나")
-                        : teamName}
+                      {tradeType === "buy" ? context.investorName : teamName}
                     </Text>
                   </Box>
                   <Icon svg={<IconArrowRightLine />} />
                   <Box display="flex" justifyContent="center">
                     <Text textStyle="t6Bold" color="fg.neutral">
-                      {tradeType === "buy"
-                        ? teamName
-                        : (context?.investorName ?? "나")}
+                      {tradeType === "buy" ? teamName : context.investorName}
                     </Text>
                   </Box>
                 </Box>
-                <Text
-                  as="p"
-                  textStyle="t5Bold"
-                  style={{
-                    textAlign: "center",
-                    fontVariantNumeric: "tabular-nums",
-                    color:
-                      tradeType === "buy"
-                        ? "var(--seed-color-fg-brand)"
-                        : "var(--seed-color-fg-critical)",
-                  }}
+                {/* Fixed height (t5's own line-height) so the row doesn't
+                    grow the moment the value becomes visible — NumberFlow
+                    pins its own line-height to 1, which doesn't match t5's
+                    otherwise. NumberFlow also stays mounted at all times
+                    (hidden via opacity, not conditionally rendered): a
+                    fresh mount has no prior value to animate from, so
+                    unmounting at 0 would skip the roll-in animation on the
+                    very first amount — typed or from a preset/전액 button. */}
+                <Box
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                  style={{ height: "var(--seed-line-height-t5)" }}
                 >
-                  {watchedAmount > 0
-                    ? `${watchedAmount.toLocaleString()}원`
-                    : " "}
-                </Text>
+                  <Text
+                    as="p"
+                    textStyle="t5Bold"
+                    style={{
+                      textAlign: "center",
+                      fontVariantNumeric: "tabular-nums",
+                      opacity: watchedAmount > 0 ? 1 : 0,
+                      // Without a transition, opacity snaps to 0 the same
+                      // instant the value drops to 0, hiding NumberFlow's
+                      // roll-down before it's ever visible — fade it out
+                      // instead so clearing the amount is seen rolling to
+                      // zero, not just disappearing.
+                      transition: "opacity 300ms ease",
+                      color:
+                        tradeType === "buy"
+                          ? "var(--seed-color-fg-brand)"
+                          : "var(--seed-color-fg-critical)",
+                    }}
+                  >
+                    <NumberFlow
+                      value={watchedAmount}
+                      suffix="원"
+                      locales="ko-KR"
+                    />
+                  </Text>
+                </Box>
               </VStack>
 
               <Text textStyle="t4Regular" color="fg.neutralSubtle">
-                {tradeType === "buy"
-                  ? `남은 투자금 ${remainingBudget.toLocaleString()}원`
-                  : `이 팀 보유금액 ${myHolding.toLocaleString()}원`}
+                {tradeType === "buy" ? "남은 투자금 " : "이 팀 보유금액 "}
+                <NumberFlow
+                  value={Math.max(0, maxAmount - watchedAmount)}
+                  suffix="원"
+                  locales="ko-KR"
+                />
               </Text>
 
               <Controller

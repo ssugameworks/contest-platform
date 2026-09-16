@@ -48,7 +48,7 @@ export function TeamMembersField({
           </Text>
           <HelpBubbleTrigger
             title="팀원도 서로서로 적어야 해요"
-            description="나만 팀원을 적으면 안 돼요! 같이 할 친구들도 각자 자기 지원서에 나머지 팀원을 빠짐없이 적어야 우리가 진짜 한 팀이라는 게 확인돼요."
+            description="나만 팀원을 적으면 안 돼요! 같이 할 친구들도 각자 자기 지원서에 나머지 팀원을 빠짐없이 적어주세요."
             showCloseButton
             open={helpOpen}
             onOpenChange={setHelpOpen}

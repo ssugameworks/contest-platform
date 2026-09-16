@@ -1,10 +1,11 @@
+import { parseKnownValue } from "@/shared/lib/parse-known-value";
 import { throwIfError } from "@/shared/lib/supabase/query";
 import { createClient } from "@/shared/lib/supabase/server";
-import type {
-  Booth,
-  BoothMarker,
-  BoothMarkerKind,
-  BoothMatrixConfig,
+import {
+  type Booth,
+  type BoothMarker,
+  type BoothMatrixConfig,
+  boothMarkerKindSchema,
 } from "./pure";
 
 export type {
@@ -57,7 +58,7 @@ export async function listBoothMarkers(): Promise<BoothMarker[]> {
   return (data ?? []).map((marker) => ({
     zone: marker.zone,
     number: marker.number,
-    kind: marker.kind as BoothMarkerKind,
+    kind: parseKnownValue(boothMarkerKindSchema, marker.kind, "부스 마커 kind"),
   }));
 }
 

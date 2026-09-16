@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { VStack } from "@seed-design/react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { sum } from "es-toolkit";
 import { forwardRef, useEffect, useImperativeHandle } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
@@ -13,6 +13,7 @@ import {
 } from "seed-design/ui/text-field";
 import { rubricCriteria, rubricMaxTotal } from "@/entities/rubric";
 import type { Team } from "@/entities/team";
+import { useSuspenseQuery } from "@/shared/lib/query/use-suspense-query";
 import { getEvaluationAction, submitEvaluationAction } from "../model/actions";
 import { type EvaluateTeamInput, evaluateTeamSchema } from "../model/schema";
 
@@ -31,7 +32,7 @@ export const EvaluateTeamForm = forwardRef<
 >(function EvaluateTeamForm({ judgeId, team, onSaved, onTotalChange }, ref) {
   const queryClient = useQueryClient();
   const queryKey = ["evaluation", judgeId, team.id];
-  const { data: evaluation, isPending } = useQuery({
+  const { data: evaluation } = useSuspenseQuery({
     queryKey,
     queryFn: () => getEvaluationAction(judgeId, team.id),
   });
@@ -70,10 +71,6 @@ export const EvaluateTeamForm = forwardRef<
   });
 
   useImperativeHandle(ref, () => ({ save }));
-
-  if (isPending) {
-    return null;
-  }
 
   return (
     <form noValidate>

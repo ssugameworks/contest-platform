@@ -1,13 +1,7 @@
 "use client";
 
-import {
-  Box,
-  HStack,
-  ResponsivePair,
-  ScrollFog,
-  VStack,
-} from "@seed-design/react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Box, HStack, ResponsivePair, VStack } from "@seed-design/react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { orderBy } from "es-toolkit";
 import { type ReactNode, useMemo, useState } from "react";
 import { ActionButton } from "seed-design/ui/action-button";
@@ -32,6 +26,8 @@ import {
   useSnackbarAdapter,
 } from "seed-design/ui/snackbar";
 import { TextField, TextFieldInput } from "seed-design/ui/text-field";
+import { ScrollFog } from "@/shared/ui/scroll-fog";
+import { SuspenseQueryBoundary } from "@/shared/ui/suspense-query-boundary";
 import {
   Table,
   TableBody,
@@ -50,8 +46,13 @@ export interface AdminCrudColumn<T extends object> {
 }
 
 export interface AdminCrudTableProps<T extends object> {
+  // Already-resolved rows and the query key they were fetched under (still
+  // needed to invalidate on delete/refresh) — fetching itself is the
+  // caller's job, so a caller with other independent queries of its own
+  // (e.g. AdminParticipantTable's team lookup) can batch them together
+  // with useSuspenseQueries instead of this table suspending separately.
+  items: T[];
   queryKey: unknown[];
-  queryFn: () => Promise<T[]>;
   getId: (item: T) => string;
   columns: AdminCrudColumn<T>[];
   searchLabel: string;
@@ -66,8 +67,8 @@ export interface AdminCrudTableProps<T extends object> {
 }
 
 export function AdminCrudTable<T extends object>({
+  items,
   queryKey,
-  queryFn,
   getId,
   columns,
   searchLabel,
@@ -87,8 +88,6 @@ export function AdminCrudTable<T extends object>({
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<T | undefined>(undefined);
   const [confirmDelete, setConfirmDelete] = useState(false);
-
-  const { data: items = [], isError } = useQuery({ queryKey, queryFn });
 
   const deleteMutation = useMutation({
     mutationFn: deleteAction,
@@ -190,13 +189,6 @@ export function AdminCrudTable<T extends object>({
           </TableRow>
         </TableHead>
         <TableBody>
-          {isError && rows.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={columns.length}>
-                목록을 불러오지 못했어요
-              </TableCell>
-            </TableRow>
-          )}
           {rows.map((item) => (
             <TableRow
               key={getId(item)}
@@ -218,7 +210,9 @@ export function AdminCrudTable<T extends object>({
           <SidePanelBody paddingX="x6">
             <ScrollFog placement={["top", "bottom"]}>
               <Box style={{ paddingTop: 20, paddingBottom: 20 }}>
-                {renderForm(editing, refresh)}
+                <SuspenseQueryBoundary>
+                  {renderForm(editing, refresh)}
+                </SuspenseQueryBoundary>
               </Box>
             </ScrollFog>
           </SidePanelBody>

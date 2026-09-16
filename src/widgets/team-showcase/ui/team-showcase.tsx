@@ -3,18 +3,25 @@
 import IconCheckmarkClipboardLine from "@karrotmarket/react-monochrome-icon/IconCheckmarkClipboardLine";
 import IconChevronRightSmallLine from "@karrotmarket/react-monochrome-icon/IconChevronRightSmallLine";
 import IconXmarkLine from "@karrotmarket/react-monochrome-icon/IconXmarkLine";
+import NumberFlow from "@number-flow/react";
 import {
   Badge,
   Box,
   Divider,
   HStack,
-  ScrollFog,
+  ScrollFog as SeedScrollFog,
   Text,
   VStack,
 } from "@seed-design/react";
 import { clamp } from "es-toolkit";
 import Link from "next/link";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  type ReactNode,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { useIntersectionObserver, useLoading } from "react-simplikit";
 import { IconInstagram } from "seed-design/icon/icon-instagram";
 import { IconKakaoTalk } from "seed-design/icon/icon-kakaotalk";
@@ -34,6 +41,7 @@ import type { CurrentUser } from "@/entities/session";
 import type { Team } from "@/entities/team";
 import { InvestButton } from "@/features/invest-in-team";
 import { PageHeader } from "@/shared/ui/page-header";
+import { ScrollFog } from "@/shared/ui/scroll-fog";
 import { BoothFloorPlanSheet } from "@/widgets/booth-floor-plan-dialog";
 import { InvestmentTransactions } from "@/widgets/investment-transactions";
 import { TeamsTopNav } from "@/widgets/teams-top-nav";
@@ -225,7 +233,6 @@ export function TeamShowcase({
       <TeamsTopNav
         variant="standard"
         title={nameHeaderVisible ? undefined : team.name}
-        elevated={!nameHeaderVisible}
       />
 
       <Box maxHeight="full" overflowY="auto" width="full">
@@ -270,12 +277,20 @@ export function TeamShowcase({
             <HStack width="full">
               <StatColumn
                 label="모금액"
-                value={`${amount.toLocaleString()}원`}
+                value={
+                  <NumberFlow value={amount} suffix="원" locales="ko-KR" />
+                }
               />
               <Divider orientation="vertical" />
-              <StatColumn label="투자자 수" value={`${investorCount}명`} />
+              <StatColumn
+                label="투자자 수"
+                value={<NumberFlow value={investorCount} suffix="명" />}
+              />
               <Divider orientation="vertical" />
-              <StatColumn label="투자 등수" value={`${rank}위`} />
+              <StatColumn
+                label="투자 등수"
+                value={<NumberFlow value={rank} suffix="위" />}
+              />
               <Divider orientation="vertical" />
               <Box
                 onClick={() => setFloorPlanOpen(true)}
@@ -331,7 +346,7 @@ export function TeamShowcase({
             {team.screenshotUrls.length > 0 && (
               <VStack gap="x3" width="full">
                 <Text textStyle="t5Bold">제품 화면</Text>
-                <ScrollFog
+                <SeedScrollFog
                   placement={["left", "right"]}
                   style={{
                     overflowY: "hidden",
@@ -381,7 +396,7 @@ export function TeamShowcase({
                       </Box>
                     ))}
                   </HStack>
-                </ScrollFog>
+                </SeedScrollFog>
               </VStack>
             )}
 
@@ -477,7 +492,7 @@ export function TeamShowcase({
 
 // 세로 Divider로 나뉜 통계 한 칸. 폭을 균등하게 나눠 가지도록
 // flexBasis를 0으로 둬요.
-function StatColumn({ label, value }: { label: string; value: string }) {
+function StatColumn({ label, value }: { label: string; value: ReactNode }) {
   return (
     <VStack gap="x1" align="center" flexGrow={1} style={{ flexBasis: 0 }}>
       <Text textStyle="t3Regular" color="fg.neutralSubtle">
@@ -680,6 +695,7 @@ function ZoomableImage({
 
     if (pointers.current.size === 2) {
       const [a, b] = [...pointers.current.values()];
+      if (!a || !b) return;
       gestureRef.current = {
         mode: "pinch",
         startDistance: Math.hypot(a.x - b.x, a.y - b.y),
@@ -722,6 +738,7 @@ function ZoomableImage({
     if (gesture.mode === "pinch" && pointers.current.size === 2) {
       event.preventDefault();
       const [a, b] = [...pointers.current.values()];
+      if (!a || !b) return;
       const distance = Math.hypot(a.x - b.x, a.y - b.y);
       const nextScale = Math.min(
         ZOOM_MAX_SCALE,

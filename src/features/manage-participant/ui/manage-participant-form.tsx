@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconILowercaseSerifCircleLine } from "@karrotmarket/react-monochrome-icon";
 import { VStack } from "@seed-design/react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRef } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Callout } from "seed-design/ui/callout";
@@ -18,6 +18,7 @@ import { Snackbar, useSnackbarAdapter } from "seed-design/ui/snackbar";
 import { TextField, TextFieldInput } from "seed-design/ui/text-field";
 import type { Participant } from "@/entities/participant";
 import { listTeamsAction } from "@/entities/team/model/actions";
+import { useSuspenseQuery } from "@/shared/lib/query/use-suspense-query";
 import {
   createParticipantAction,
   updateParticipantAction,
@@ -38,7 +39,7 @@ export function ManageParticipantForm({
 }) {
   const queryClient = useQueryClient();
   const adapter = useSnackbarAdapter();
-  const { data: teams = [] } = useQuery({
+  const { data: teams } = useSuspenseQuery({
     queryKey: ["teams"],
     queryFn: listTeamsAction,
   });

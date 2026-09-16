@@ -18,6 +18,10 @@
   --seed-color-stroke-brand-solid: var(--seed-color-palette-blue-800);
   --seed-color-stroke-brand-weak: var(--seed-color-palette-blue-300);
   --background: oklch(1 0 0);
+  /* ScrollFog reveals whatever sits behind it as content fades out at the
+     scroll edges — inverted on purpose (dark in light mode, light in dark
+     mode) so the fade reads as a shadow rather than blending into the page. */
+  --seed-color-bg-scroll-fog: var(--seed-color-palette-static-black);
 }
 
 :root[data-seed-color-mode="system"][data-seed-user-color-scheme="dark"],
@@ -32,6 +36,7 @@
   --seed-color-bg-brand-weak-pressed: var(--seed-color-palette-blue-800);
   --seed-color-stroke-brand-solid: var(--seed-color-palette-blue-500);
   --seed-color-stroke-brand-weak: var(--seed-color-palette-blue-800);
+  --seed-color-bg-scroll-fog: var(--seed-color-palette-static-white);
 }
 
 :root {

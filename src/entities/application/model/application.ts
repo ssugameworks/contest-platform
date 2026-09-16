@@ -1,5 +1,11 @@
+import { parseKnownValue } from "@/shared/lib/parse-known-value";
 import { createAdminClient } from "@/shared/lib/supabase/admin";
 import { throwIfError } from "@/shared/lib/supabase/query";
+import {
+  applicationRoleSchema,
+  applicationStatusSchema,
+  applicationTypeSchema,
+} from "./schema";
 
 export type ApplicationRole = "pm" | "design" | "developer";
 export type ApplicationType = "individual" | "team";
@@ -69,9 +75,17 @@ function mapApplication(row: ApplicationRow): Application {
     department: row.department,
     phone: row.phone,
     birthDate: row.birth_date,
-    role: row.role as ApplicationRole,
-    applicationType: row.application_type as ApplicationType,
-    status: row.status as ApplicationStatus,
+    role: parseKnownValue(applicationRoleSchema, row.role, "지원서 role"),
+    applicationType: parseKnownValue(
+      applicationTypeSchema,
+      row.application_type,
+      "지원서 applicationType",
+    ),
+    status: parseKnownValue(
+      applicationStatusSchema,
+      row.status,
+      "지원서 status",
+    ),
     createdAt: row.created_at,
     teamMembers: [...row.application_team_members]
       .sort((a, b) => a.position - b.position)

@@ -1,6 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
+import { parseKnownValue } from "@/shared/lib/parse-known-value";
 import {
   SESSION_MAX_AGE_SECONDS,
   STAFF_SESSION_COOKIE_NAME,
@@ -8,7 +9,7 @@ import {
 } from "@/shared/lib/session/cookie";
 import { hashPassword, verifyPassword } from "@/shared/lib/session/password";
 import { createAdminClient } from "@/shared/lib/supabase/admin";
-import type { StaffRole } from "./pure";
+import { staffRoleSchema } from "./pure";
 import { listJudges, type Staff } from "./staff";
 
 async function setStaffSessionCookie(staffId: string): Promise<void> {
@@ -73,5 +74,9 @@ export async function findStaffByIdAction(
   }
 
   await setStaffSessionCookie(data.id);
-  return { id: data.id, name: data.name, role: data.role as StaffRole };
+  return {
+    id: data.id,
+    name: data.name,
+    role: parseKnownValue(staffRoleSchema, data.role, "staff role"),
+  };
 }

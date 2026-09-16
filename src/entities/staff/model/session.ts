@@ -1,13 +1,14 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
+import { parseKnownValue } from "@/shared/lib/parse-known-value";
 import {
   STAFF_SESSION_COOKIE_NAME,
   verifySession,
 } from "@/shared/lib/session/cookie";
 import { createAdminClient } from "@/shared/lib/supabase/admin";
 import { throwIfError } from "@/shared/lib/supabase/query";
-import type { Staff, StaffRole } from "./pure";
+import { type Staff, staffRoleSchema } from "./pure";
 
 // staff has no public SELECT policy, so this always goes through the
 // service-role client — same pattern as getCurrentUser for participants.
@@ -27,7 +28,11 @@ export const getCurrentStaff = cache(async (): Promise<Staff | null> => {
     .maybeSingle();
   throwIfError(error);
   return data
-    ? { id: data.id, name: data.name, role: data.role as StaffRole }
+    ? {
+        id: data.id,
+        name: data.name,
+        role: parseKnownValue(staffRoleSchema, data.role, "staff role"),
+      }
     : null;
 });
 

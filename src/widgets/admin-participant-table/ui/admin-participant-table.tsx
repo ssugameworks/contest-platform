@@ -1,19 +1,33 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import type { Participant } from "@/entities/participant";
 import { listParticipantsAction } from "@/entities/participant/model/actions";
 import { listTeamsAction } from "@/entities/team/model/actions";
 import { ManageParticipantForm } from "@/features/manage-participant";
 import { deleteParticipantAction } from "@/features/manage-participant/model/actions";
+import { useSuspenseQueries } from "@/shared/lib/query/use-suspense-query";
 import { AdminCrudTable } from "@/shared/ui/admin-crud-table";
+import { SuspenseQueryBoundary } from "@/shared/ui/suspense-query-boundary";
 
 const QUERY_KEY = ["admin-participants"];
 
 export function AdminParticipantTable() {
-  const { data: teams = [] } = useQuery({
-    queryKey: ["teams"],
-    queryFn: listTeamsAction,
+  return (
+    <SuspenseQueryBoundary>
+      <AdminParticipantTableContent />
+    </SuspenseQueryBoundary>
+  );
+}
+
+function AdminParticipantTableContent() {
+  // Batched with useSuspenseQueries so the teams lookup and the
+  // participants list (otherwise fetched separately inside AdminCrudTable)
+  // fire in parallel instead of one after the other.
+  const [{ data: teams }, { data: participants }] = useSuspenseQueries({
+    queries: [
+      { queryKey: ["teams"], queryFn: listTeamsAction },
+      { queryKey: QUERY_KEY, queryFn: listParticipantsAction },
+    ],
   });
   const teamName = (teamId: string | null) => {
     if (!teamId) return "미배정";
@@ -22,8 +36,8 @@ export function AdminParticipantTable() {
 
   return (
     <AdminCrudTable<Participant>
+      items={participants}
       queryKey={QUERY_KEY}
-      queryFn={listParticipantsAction}
       getId={(participant) => participant.studentId}
       searchLabel="참가자 검색"
       searchPlaceholder="이름 또는 학번으로 검색"
