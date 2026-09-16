@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { rubricCriteria, rubricMaxTotal } from "@/entities/rubric";
+import { rubricCriteria } from "@/entities/rubric";
 import type { JudgeEvaluation } from "./pure";
 import { getEvaluationTotal } from "./pure";
 
@@ -33,9 +33,12 @@ describe("getEvaluationTotal", () => {
   });
 
   test("rounds the raw score to the nearest percentage point", () => {
-    // Score half of the total points available across all criteria.
-    const halfTotal = rubricMaxTotal / 2;
-    const criteriaScores = { [rubricCriteria[0].id]: halfTotal };
+    // Score every criterion at exactly half of its own max — a realistic
+    // per-criterion input, unlike dumping rubricMaxTotal/2 onto one
+    // criterion (which would exceed that criterion's own maxScore).
+    const criteriaScores = Object.fromEntries(
+      rubricCriteria.map((criterion) => [criterion.id, criterion.maxScore / 2]),
+    );
     expect(getEvaluationTotal(makeEvaluation(criteriaScores))).toBe(50);
   });
 
