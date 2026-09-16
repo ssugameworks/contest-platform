@@ -58,7 +58,7 @@ import {
   setBoothMarkerAction,
   setBoothMatrixConfigAction,
 } from "@/features/manage-booths/model/actions";
-import { useSuspenseQuery } from "@/shared/lib/query/use-suspense-query";
+import { useSuspenseQueries } from "@/shared/lib/query/use-suspense-query";
 import { SuspenseQueryBoundary } from "@/shared/ui/suspense-query-boundary";
 
 const UNASSIGNED = "__unassigned__";
@@ -146,21 +146,21 @@ function AdminBoothGridContent() {
   const [selectedMarkerKind, setSelectedMarkerKind] =
     useState<BoothMarkerKind | null>(null);
 
-  const { data: booths } = useSuspenseQuery({
-    queryKey: BOOTHS_QUERY_KEY,
-    queryFn: listBoothsAction,
-  });
-  const { data: markers } = useSuspenseQuery({
-    queryKey: MARKERS_QUERY_KEY,
-    queryFn: listBoothMarkersAction,
-  });
-  const { data: teams } = useSuspenseQuery({
-    queryKey: ["teams"],
-    queryFn: listTeamsAction,
-  });
-  const { data: matrixConfig } = useSuspenseQuery({
-    queryKey: MATRIX_CONFIG_QUERY_KEY,
-    queryFn: getBoothMatrixConfigAction,
+  const [
+    { data: booths },
+    { data: markers },
+    { data: teams },
+    { data: matrixConfig },
+  ] = useSuspenseQueries({
+    queries: [
+      { queryKey: BOOTHS_QUERY_KEY, queryFn: listBoothsAction },
+      { queryKey: MARKERS_QUERY_KEY, queryFn: listBoothMarkersAction },
+      { queryKey: ["teams"], queryFn: listTeamsAction },
+      {
+        queryKey: MATRIX_CONFIG_QUERY_KEY,
+        queryFn: getBoothMatrixConfigAction,
+      },
+    ],
   });
   const persistedZones = matrixConfig.zones;
   const columns = columnsDraft ?? matrixConfig.columns;

@@ -6,15 +6,30 @@ import {
   deleteInvestorAction,
   listInvestorsAction,
 } from "@/features/manage-investor/model/actions";
+import { useSuspenseQuery } from "@/shared/lib/query/use-suspense-query";
 import { AdminCrudTable } from "@/shared/ui/admin-crud-table";
+import { SuspenseQueryBoundary } from "@/shared/ui/suspense-query-boundary";
 
 const QUERY_KEY = ["admin-investors"];
 
 export function AdminInvestorTable() {
   return (
+    <SuspenseQueryBoundary>
+      <AdminInvestorTableContent />
+    </SuspenseQueryBoundary>
+  );
+}
+
+function AdminInvestorTableContent() {
+  const { data: items } = useSuspenseQuery({
+    queryKey: QUERY_KEY,
+    queryFn: listInvestorsAction,
+  });
+
+  return (
     <AdminCrudTable<Investor>
+      items={items}
       queryKey={QUERY_KEY}
-      queryFn={listInvestorsAction}
       getId={(investor) => investor.id}
       searchLabel="투자자 검색"
       searchPlaceholder="이름 또는 학번으로 검색"

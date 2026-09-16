@@ -2,16 +2,31 @@
 
 import { ManageTeamForm } from "@/features/manage-team";
 import { deleteTeamAction } from "@/features/manage-team/model/actions";
+import { useSuspenseQuery } from "@/shared/lib/query/use-suspense-query";
 import { AdminCrudTable } from "@/shared/ui/admin-crud-table";
+import { SuspenseQueryBoundary } from "@/shared/ui/suspense-query-boundary";
 import { type AdminTeamRow, listAdminTeamRows } from "../model/actions";
 
 const QUERY_KEY = ["admin-team-rows"];
 
 export function AdminTeamTable() {
   return (
+    <SuspenseQueryBoundary>
+      <AdminTeamTableContent />
+    </SuspenseQueryBoundary>
+  );
+}
+
+function AdminTeamTableContent() {
+  const { data: items } = useSuspenseQuery({
+    queryKey: QUERY_KEY,
+    queryFn: listAdminTeamRows,
+  });
+
+  return (
     <AdminCrudTable<AdminTeamRow>
+      items={items}
       queryKey={QUERY_KEY}
-      queryFn={listAdminTeamRows}
       getId={(row) => row.team.id}
       searchLabel="팀 검색"
       searchPlaceholder="팀 이름으로 검색"

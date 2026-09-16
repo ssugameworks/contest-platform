@@ -12,7 +12,7 @@ import {
 } from "@/entities/booth/model/actions";
 import { BoothFloorPlan } from "@/entities/booth/ui/booth-floor-plan";
 import { listTeamsAction } from "@/entities/team/model/actions";
-import { useSuspenseQuery } from "@/shared/lib/query/use-suspense-query";
+import { useSuspenseQueries } from "@/shared/lib/query/use-suspense-query";
 import { SuspenseQueryBoundary } from "@/shared/ui/suspense-query-boundary";
 
 export function BoothFloorPlanSheet({
@@ -49,21 +49,21 @@ function BoothFloorPlanContent({
 }: {
   highlightTeamId?: string | null;
 }) {
-  const { data: booths } = useSuspenseQuery({
-    queryKey: ["admin-booths"],
-    queryFn: listBoothsAction,
-  });
-  const { data: markers } = useSuspenseQuery({
-    queryKey: ["booth-markers"],
-    queryFn: listBoothMarkersAction,
-  });
-  const { data: teams } = useSuspenseQuery({
-    queryKey: ["teams"],
-    queryFn: listTeamsAction,
-  });
-  const { data: matrixConfig } = useSuspenseQuery({
-    queryKey: ["booth-matrix-config"],
-    queryFn: getBoothMatrixConfigAction,
+  const [
+    { data: booths },
+    { data: markers },
+    { data: teams },
+    { data: matrixConfig },
+  ] = useSuspenseQueries({
+    queries: [
+      { queryKey: ["admin-booths"], queryFn: listBoothsAction },
+      { queryKey: ["booth-markers"], queryFn: listBoothMarkersAction },
+      { queryKey: ["teams"], queryFn: listTeamsAction },
+      {
+        queryKey: ["booth-matrix-config"],
+        queryFn: getBoothMatrixConfigAction,
+      },
+    ],
   });
 
   return (

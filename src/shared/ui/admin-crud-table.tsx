@@ -26,7 +26,6 @@ import {
   useSnackbarAdapter,
 } from "seed-design/ui/snackbar";
 import { TextField, TextFieldInput } from "seed-design/ui/text-field";
-import { useSuspenseQuery } from "@/shared/lib/query/use-suspense-query";
 import { ScrollFog } from "@/shared/ui/scroll-fog";
 import { SuspenseQueryBoundary } from "@/shared/ui/suspense-query-boundary";
 import {
@@ -47,8 +46,13 @@ export interface AdminCrudColumn<T extends object> {
 }
 
 export interface AdminCrudTableProps<T extends object> {
+  // Already-resolved rows and the query key they were fetched under (still
+  // needed to invalidate on delete/refresh) — fetching itself is the
+  // caller's job, so a caller with other independent queries of its own
+  // (e.g. AdminParticipantTable's team lookup) can batch them together
+  // with useSuspenseQueries instead of this table suspending separately.
+  items: T[];
   queryKey: unknown[];
-  queryFn: () => Promise<T[]>;
   getId: (item: T) => string;
   columns: AdminCrudColumn<T>[];
   searchLabel: string;
@@ -62,19 +66,9 @@ export interface AdminCrudTableProps<T extends object> {
   defaultSortDesc?: boolean;
 }
 
-export function AdminCrudTable<T extends object>(
-  props: AdminCrudTableProps<T>,
-) {
-  return (
-    <SuspenseQueryBoundary>
-      <AdminCrudTableContent {...props} />
-    </SuspenseQueryBoundary>
-  );
-}
-
-function AdminCrudTableContent<T extends object>({
+export function AdminCrudTable<T extends object>({
+  items,
   queryKey,
-  queryFn,
   getId,
   columns,
   searchLabel,
@@ -94,8 +88,6 @@ function AdminCrudTableContent<T extends object>({
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<T | undefined>(undefined);
   const [confirmDelete, setConfirmDelete] = useState(false);
-
-  const { data: items } = useSuspenseQuery({ queryKey, queryFn });
 
   const deleteMutation = useMutation({
     mutationFn: deleteAction,

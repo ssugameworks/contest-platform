@@ -16,7 +16,7 @@ import type { JudgeEvaluation } from "@/entities/score/model/pure";
 import { getEvaluationTotal } from "@/entities/score/model/pure";
 import { listJudgesAction } from "@/entities/staff/model/actions";
 import { listTeamsAction } from "@/entities/team/model/actions";
-import { useSuspenseQuery } from "@/shared/lib/query/use-suspense-query";
+import { useSuspenseQueries } from "@/shared/lib/query/use-suspense-query";
 import { SuspenseQueryBoundary } from "@/shared/ui/suspense-query-boundary";
 import {
   Table,
@@ -66,27 +66,29 @@ function AdminScoreTableContent() {
   const [sortKey, setSortKey] = useState<SortKey>("finalScore");
   const [sortDesc, setSortDesc] = useState(true);
 
-  const { data: entries } = useSuspenseQuery({
-    queryKey: ["score-leaderboard"],
-    queryFn: getScoreLeaderboardAction,
-  });
-  const { data: teams } = useSuspenseQuery({
-    queryKey: ["teams"],
-    queryFn: listTeamsAction,
-  });
-  const { data: judges } = useSuspenseQuery({
-    queryKey: ["judges"],
-    queryFn: listJudgesAction,
-  });
-  // One query for every judge×team evaluation, instead of a request per
-  // table cell.
-  const { data: evaluations } = useSuspenseQuery({
-    queryKey: ["evaluations"],
-    queryFn: listEvaluationsAction,
-  });
-  const { data: weight } = useSuspenseQuery({
-    queryKey: ["investment-weight"],
-    queryFn: getInvestmentWeightAction,
+  // These five queries are independent — batching them into one
+  // useSuspenseQueries call fires them in parallel instead of each
+  // useSuspenseQuery suspending the render (and thus delaying the next
+  // hook) in sequence.
+  const [
+    { data: entries },
+    { data: teams },
+    { data: judges },
+    // One query for every judge×team evaluation, instead of a request per
+    // table cell.
+    { data: evaluations },
+    { data: weight },
+  ] = useSuspenseQueries({
+    queries: [
+      { queryKey: ["score-leaderboard"], queryFn: getScoreLeaderboardAction },
+      { queryKey: ["teams"], queryFn: listTeamsAction },
+      { queryKey: ["judges"], queryFn: listJudgesAction },
+      { queryKey: ["evaluations"], queryFn: listEvaluationsAction },
+      {
+        queryKey: ["investment-weight"],
+        queryFn: getInvestmentWeightAction,
+      },
+    ],
   });
   const [weightInput, setWeightInput] = useState(weight);
   useEffect(() => setWeightInput(weight), [weight]);

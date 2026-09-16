@@ -5,7 +5,7 @@ import { Box, Text, VStack } from "@seed-design/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getScoreLeaderboardAction } from "@/entities/score/model/actions";
 import { listTeamsAction } from "@/entities/team/model/actions";
-import { useSuspenseQuery } from "@/shared/lib/query/use-suspense-query";
+import { useSuspenseQueries } from "@/shared/lib/query/use-suspense-query";
 import { useRealtimeRefetch } from "@/shared/lib/supabase/use-realtime-refetch";
 import { LoadingSpinner } from "@/shared/ui/loading-spinner";
 import { SuspenseQueryBoundary } from "@/shared/ui/suspense-query-boundary";
@@ -39,13 +39,11 @@ export default function LeaderboardPage() {
 
 function LeaderboardContent() {
   const queryClient = useQueryClient();
-  const { data: entries } = useSuspenseQuery({
-    queryKey: QUERY_KEY,
-    queryFn: getScoreLeaderboardAction,
-  });
-  const { data: teams } = useSuspenseQuery({
-    queryKey: ["teams"],
-    queryFn: listTeamsAction,
+  const [{ data: entries }, { data: teams }] = useSuspenseQueries({
+    queries: [
+      { queryKey: QUERY_KEY, queryFn: getScoreLeaderboardAction },
+      { queryKey: ["teams"], queryFn: listTeamsAction },
+    ],
   });
 
   useRealtimeRefetch("leaderboard-realtime", REALTIME_TABLES, () => {
