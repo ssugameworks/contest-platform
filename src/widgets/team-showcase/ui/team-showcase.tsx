@@ -29,7 +29,11 @@ import { ActionButton } from "seed-design/ui/action-button";
 import { Avatar, AvatarStack } from "seed-design/ui/avatar";
 import { HelpBubbleAnchor } from "seed-design/ui/help-bubble";
 import { IdentityPlaceholder } from "seed-design/ui/identity-placeholder";
-import { Snackbar, useSnackbarAdapter } from "seed-design/ui/snackbar";
+import {
+  Snackbar,
+  SnackbarAvoidOverlap,
+  useSnackbarAdapter,
+} from "seed-design/ui/snackbar";
 import {
   type Booth,
   type BoothMarker,
@@ -457,19 +461,24 @@ export function TeamShowcase({
           따라 로그인 유도/매수매도/공유 중 하나로 바뀌고, 다른 팀
           참가자거나 심사위원이면 아예 렌더링하지 않는다. */}
       {bottomAction && (
-        <Box
-          bg="bg.layerDefault"
-          width="full"
-          px="spacingX.globalGutter"
-          py="x4"
-          style={{
-            paddingBottom: "calc(var(--seed-safe-area-bottom) + 16px)",
-          }}
-        >
-          <Box width="full" style={{ maxWidth: "720px", marginInline: "auto" }}>
-            {bottomAction}
+        <SnackbarAvoidOverlap>
+          <Box
+            bg="bg.layerDefault"
+            width="full"
+            px="spacingX.globalGutter"
+            py="x4"
+            style={{
+              paddingBottom: "calc(var(--seed-safe-area-bottom) + 16px)",
+            }}
+          >
+            <Box
+              width="full"
+              style={{ maxWidth: "720px", marginInline: "auto" }}
+            >
+              {bottomAction}
+            </Box>
           </Box>
-        </Box>
+        </SnackbarAvoidOverlap>
       )}
 
       <BoothFloorPlanSheet

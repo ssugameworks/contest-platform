@@ -35,7 +35,11 @@ import {
   SidePanelFooter,
   SidePanelRoot,
 } from "seed-design/ui/side-panel";
-import { Snackbar, useSnackbarAdapter } from "seed-design/ui/snackbar";
+import {
+  Snackbar,
+  SnackbarAvoidOverlap,
+  useSnackbarAdapter,
+} from "seed-design/ui/snackbar";
 import { TextField, TextFieldInput } from "seed-design/ui/text-field";
 import {
   getBoothMatrixConfigAction,
@@ -636,19 +640,21 @@ function AdminBoothGridContent() {
               )}
             </VStack>
           </SidePanelBody>
-          <SidePanelFooter>
-            <ActionButton
-              type="button"
-              variant="criticalSolid"
-              size="large"
-              className="w-full"
-              loading={deleteMutation.isPending}
-              disabled={deleteMutation.isPending}
-              onClick={() => setConfirmDelete(true)}
-            >
-              이 부스 삭제
-            </ActionButton>
-          </SidePanelFooter>
+          <SnackbarAvoidOverlap>
+            <SidePanelFooter>
+              <ActionButton
+                type="button"
+                variant="criticalSolid"
+                size="large"
+                className="w-full"
+                loading={deleteMutation.isPending}
+                disabled={deleteMutation.isPending}
+                onClick={() => setConfirmDelete(true)}
+              >
+                이 부스 삭제
+              </ActionButton>
+            </SidePanelFooter>
+          </SnackbarAvoidOverlap>
         </SidePanelContent>
       </SidePanelRoot>
 

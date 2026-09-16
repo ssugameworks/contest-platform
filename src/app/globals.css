@@ -19,9 +19,12 @@
   --seed-color-stroke-brand-weak: var(--seed-color-palette-blue-300);
   --background: oklch(1 0 0);
   /* ScrollFog reveals whatever sits behind it as content fades out at the
-     scroll edges — inverted on purpose (dark in light mode, light in dark
-     mode) so the fade reads as a shadow rather than blending into the page. */
-  --seed-color-bg-scroll-fog: var(--seed-color-palette-static-black);
+     scroll edges — kept black in both light and dark mode so the fade
+     reads as a shadow rather than a light-mode-only effect. Uses the same
+     semi-transparent black as --seed-color-bg-overlay (this design
+     system's standard scrim) instead of solid black, which the gradient
+     would otherwise render as a hard opaque edge rather than a soft fade. */
+  --seed-color-bg-scroll-fog: var(--seed-color-palette-static-black-alpha-700);
 }
 
 :root[data-seed-color-mode="system"][data-seed-user-color-scheme="dark"],
